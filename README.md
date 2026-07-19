@@ -1,6 +1,6 @@
 # anoikis-tools
 
-Tooling for the anoikis workflow/harness. (confirm/refine)
+Tooling for the anoikis workflow/harness.
 
 ## Claude Code setup
 

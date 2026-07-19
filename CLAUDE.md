@@ -1,6 +1,6 @@
 # anoikis-tools
 
-> **Purpose:** Tooling for the anoikis workflow/harness. (confirm/refine)
+> **Purpose:** Tooling for the anoikis workflow/harness.
 
 One of the sibling repos under `psa-platform`. Worked on directly — not through the PSA `workspace`. Outside `workspace`, Claude has no PSA identity; only the general conventions below apply.
 
