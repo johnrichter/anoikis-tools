@@ -37,16 +37,20 @@ const dir = "anoikis"
 // file with no lookup table to drift.
 type Artifact string
 
-// The artifacts this engine owns and enforces.
+// The artifacts this engine owns. All but BoundaryManifest are enforced by compiling this
+// file through Compiled/Validate below; BoundaryManifest is enforced at runtime by
+// boundary.Validate's own Go decode, and is canonical here only so a roster brief's
+// output_schema reference has exactly one file to resolve against.
 const (
-	HarnessPolicy Artifact = "harness-policy"
-	Project       Artifact = "project"
-	GraphIndex    Artifact = "graph-index"
-	GraphShard    Artifact = "graph-shard"
-	Node          Artifact = "node"
-	Gates         Artifact = "gates"
-	RunLogEvent   Artifact = "run-log-event"
-	RunResult     Artifact = "run-result"
+	HarnessPolicy    Artifact = "harness-policy"
+	Project          Artifact = "project"
+	GraphIndex       Artifact = "graph-index"
+	GraphShard       Artifact = "graph-shard"
+	Node             Artifact = "node"
+	Gates            Artifact = "gates"
+	RunLogEvent      Artifact = "run-log-event"
+	RunResult        Artifact = "run-result"
+	BoundaryManifest Artifact = "boundary-manifest"
 )
 
 // All returns every owned artifact, sorted, so a completeness check can
