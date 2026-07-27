@@ -16,6 +16,7 @@ These files are the canonical bytes. They are also embedded in the binary, so a 
 | `gates.schema.json` | `gates.json` | Per-gate policy and status. |
 | `run-log-event.schema.json` | `run-log.jsonl` | One line: a single state transition, append-only. |
 | `run-result.schema.json` | `results/<id>.json` | What one node's run produced, durably. |
+| `boundary-manifest.schema.json` | a dispatch return | The bounded shape every dispatched agent's return is held to. Enforced at runtime by `boundary.Validate`'s own decode, not by compiling this file — canonical here so a roster brief's `output_schema` reference has exactly one file to resolve against. |
 
 ## Conventions these contracts share
 

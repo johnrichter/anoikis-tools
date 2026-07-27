@@ -15,6 +15,7 @@ import (
 var named = []schemas.Artifact{
 	schemas.HarnessPolicy, schemas.Project, schemas.GraphIndex, schemas.GraphShard,
 	schemas.Node, schemas.Gates, schemas.RunLogEvent, schemas.RunResult,
+	schemas.BoundaryManifest,
 }
 
 func TestEveryOwnedSchemaCompiles(t *testing.T) {

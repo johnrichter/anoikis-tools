@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.anoikis.dev/anoikis/boundary-manifest.schema.json",
+  "title": "Roster dispatch return (bounded manifest)",
+  "description": "The bounded return every dispatched agent's run is held to, canonical here for any roster brief's output_schema reference to resolve against. The wire enforcement is boundary.Manifest's own decode (DisallowUnknownFields plus a per-class byte ceiling), not this document compiled as a validator, so this file and that struct must agree on shape. A control-plane verdict (a review's pass/fix) is one of these manifests too — the verdict rides in status, never a separate field.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "next_action"],
+  "properties": {
+    "status": {
+      "description": "The run's own pass/fail, or, for a control-plane verdict, the verdict token itself from the harness policy's declared vocabulary.",
+      "type": "string",
+      "minLength": 1
+    },
+    "artifact_paths": {
+      "description": "Where the deliverable actually lives. The only route back to deliverable bytes this manifest carries; nothing that reads this manifest opens these paths on the manifest's behalf.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "facts": {
+      "description": "A FEW key facts about the run, never a restatement of the deliverable itself.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "maxItems": 5
+    },
+    "next_action": {
+      "description": "What happens next, as this run's own stated claim.",
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
