@@ -65,7 +65,20 @@ func (s *session) step(ctx context.Context) (engine.Directive, error) {
 			return engine.Directive{}, err
 		}
 	}
-	return engine.Step(st, s.harness, s.scheme, s.prover, open, env)
+	d, err := engine.Step(st, s.harness, s.scheme, s.prover, open, env)
+	if err != nil {
+		return engine.Directive{}, err
+	}
+	// A build with nothing left to do — blocked, or finished — has to account
+	// for its operator gates before it says so. An unconfirmed gate is work
+	// waiting on a person: a precondition, never a blockage the plan has to be
+	// rewritten to clear, and never a completion.
+	if d.Action == engine.ActionStop || (d.Action == engine.ActionHalt && d.Cause == engine.CauseBlocked) {
+		if err := engine.OperatorHold(st, s.nodeDetails(st)); err != nil {
+			return engine.Directive{}, err
+		}
+	}
+	return d, nil
 }
 
 // openFindings reads the effort's register in the shape the engine consumes:
@@ -138,11 +151,7 @@ func runDispatch(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return fail(cmd, "store", err)
 	}
-	details, err := s.loadDetails(st, d.Launch.Members)
-	if err != nil {
-		return fail(cmd, "store", err)
-	}
-	dispatches, err := engine.PlanDispatch(st, s.harness, details, d.Launch.Members, d.Launch.LayerSeq, engine.Env{
+	dispatches, err := engine.PlanDispatch(st, s.harness, s.nodeDetails(st), d.Launch.Members, d.Launch.LayerSeq, engine.Env{
 		Tool: cliout.Tool, Effort: s.cfg.Effort, BaseRef: d.Launch.BaseRef,
 	})
 	if err != nil {
@@ -629,6 +638,22 @@ hard kill costs the work in flight and never the record of what came before.`,
 			return finish(cmd, result)
 		},
 	}
+}
+
+// nodeDetails reads every node's detail record, skipping any the store cannot
+// produce: a detail that will not load is reported by the readiness gate, which
+// names it, rather than by a read that has nothing to say about it.
+func (s *session) nodeDetails(st dag.State) map[string]dag.Detail {
+	nodes := st.Nodes()
+	out := make(map[string]dag.Detail, len(nodes))
+	for _, n := range nodes {
+		d, err := s.store.LoadDetail(n.ID)
+		if err != nil {
+			continue
+		}
+		out[n.ID] = d
+	}
+	return out
 }
 
 // loadDetails reads the detail records for a set of nodes.

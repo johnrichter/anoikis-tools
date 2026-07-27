@@ -12,7 +12,7 @@ These files are the canonical bytes. They are also embedded in the binary, so a 
 | `project.schema.json` | `project.json` | Effort identity, budget, signing policy, carryover, and where every other artifact lives. |
 | `graph-index.schema.json` | `graph.json` | One row per gate shard with its status counts. |
 | `graph-shard.schema.json` | `graph/<gate>.json` | One gate's nodes: identity, status, edges, resource surface. |
-| `node.schema.json` | `nodes/<id>.json` | One node's intent, acceptance criteria, stages, and result. |
+| `node.schema.json` | `nodes/<id>.json` | One node's intent, acceptance criteria, stages, and result — or, for a gate, the operator signal it requires and the confirmation that satisfies it. |
 | `gates.schema.json` | `gates.json` | Per-gate policy and status. |
 | `run-log-event.schema.json` | `run-log.jsonl` | One line: a single state transition, append-only. |
 | `run-result.schema.json` | `results/<id>.json` | What one node's run produced, durably. |
@@ -25,6 +25,7 @@ These files are the canonical bytes. They are also embedded in the binary, so a 
 - **No undeclared members.** Every object sets `additionalProperties: false`, so a typo is a validation error rather than a silently ignored field.
 - **One fact, one home.** A node's gate is the shard it lives in; gate policy carries no membership list. Signing policy lives on the manifest; a gate only inherits it. Spend is stored where it was measured and rolled up from there.
 - **Unknown is a value.** A run's spend carries a `known` flag and a reason, so a figure that could not be measured is never reported as zero. The manifest's budget counts the runs it could not price, so a rolled-up total says plainly when it is really a floor.
+- **A gate is confirmed, not produced.** `deliverable_kind` is `code | docs | gate`. code and docs name an artifact an agent authors; gate names none — it is an operator-precondition boundary, verified by a recorded confirmation of the signal it declares (who confirmed, when, and against what). A gate therefore declares no stages, no worktree and no result, and the harness policy may declare no route for it: there is nothing for a builder or a writer to author, so neither is ever handed one. A confirmation missing any of its three facts is refused, which leaves the gate unmet and its dependents blocked.
 
 ## Changing one
 

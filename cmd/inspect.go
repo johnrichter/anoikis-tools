@@ -39,15 +39,7 @@ failure at a time.`,
 			if err != nil {
 				return fail(cmd, "store", err)
 			}
-			details := map[string]dag.Detail{}
-			for _, n := range st.Nodes() {
-				d, err := s.store.LoadDetail(n.ID)
-				if err != nil {
-					continue
-				}
-				details[n.ID] = d
-			}
-			rep, err := engine.Validate(st, s.harness, s.scheme, details)
+			rep, err := engine.Validate(st, s.harness, s.scheme, s.nodeDetails(st))
 			if err != nil {
 				return fail(cmd, "engine", err)
 			}

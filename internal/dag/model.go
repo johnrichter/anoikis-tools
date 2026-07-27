@@ -88,21 +88,35 @@ var knownTiers = map[VerifyTier]bool{
 // Known reports whether t is one of the three canonical tiers.
 func (t VerifyTier) Known() bool { return knownTiers[t] }
 
-// DeliverableKind is what a node produces. Routing is exhaustive over this
-// set, so adding a member forces every route to account for it.
+// DeliverableKind is what a node delivers, and therefore how it is verified.
+// Routing is exhaustive over this set, so adding a member forces every route to
+// account for it.
 type DeliverableKind string
 
-// The closed deliverable-kind set.
+// The closed deliverable-kind set. code and docs name an artifact an agent
+// authors. gate names none: it is an operator-precondition boundary, verified
+// by a recorded confirmation of the signal it declares.
 const (
 	KindCode DeliverableKind = "code"
 	KindDocs DeliverableKind = "docs"
+	KindGate DeliverableKind = "gate"
 )
 
 // AllKinds is the enumeration routing completeness is checked against.
-var AllKinds = []DeliverableKind{KindCode, KindDocs}
+var AllKinds = []DeliverableKind{KindCode, KindDocs, KindGate}
+
+// AuthoredKinds are the kinds an agent delivers by authoring an artifact, and
+// so the kinds a harness policy declares a dispatch route for. It is derived
+// from the one fact that separates them, so the two can never disagree.
+var AuthoredKinds = slices.DeleteFunc(slices.Clone(AllKinds), DeliverableKind.OperatorConfirmed)
 
 // Known reports whether k is one of the canonical kinds.
 func (k DeliverableKind) Known() bool { return slices.Contains(AllKinds, k) }
+
+// OperatorConfirmed reports whether k is verified by a recorded operator
+// confirmation rather than by an artifact an agent authors. Such a node is
+// never dispatched: there is nothing for a role to write.
+func (k DeliverableKind) OperatorConfirmed() bool { return k == KindGate }
 
 // GateStatus is where a gate stands.
 type GateStatus string
@@ -303,15 +317,40 @@ type NodeResult struct {
 	Usage         *Usage   `json:"usage,omitempty"`
 }
 
+// Precondition is a gate's contract: the operator signal it requires, and the
+// confirmation that satisfies it. Only an operator-confirmed kind carries one.
+type Precondition struct {
+	// Signal is what an operator must confirm is true, stated so that
+	// confirming it is one yes-or-no act.
+	Signal string `json:"signal"`
+	// Confirmation is the record that satisfies the signal. Absent until an
+	// operator has confirmed it, which is the state that blocks dependents.
+	Confirmation *Confirmation `json:"confirmation,omitempty"`
+}
+
+// Confirmation is one recorded operator confirmation. All three fields are
+// load-bearing: a record missing any of them attests to nothing.
+type Confirmation struct {
+	// By is the operator who confirmed.
+	By string `json:"by"`
+	// At is when they confirmed, as an RFC 3339 instant.
+	At string `json:"at"`
+	// Against restates the signal confirmed, so the record says what was
+	// confirmed without the node beside it.
+	Against string `json:"against"`
+}
+
 // Detail is everything about a node that is read only on dispatch or
-// inspection.
+// inspection. Stages and Precondition are exclusive: one names the run that
+// authors an artifact, the other the signal an operator confirms instead.
 type Detail struct {
 	SchemaVersion   string          `json:"schema_version"`
 	ID              string          `json:"id"`
 	Intent          string          `json:"intent"`
 	DeliverableKind DeliverableKind `json:"deliverable_kind"`
 	Acceptance      []string        `json:"acceptance"`
-	Stages          []Stage         `json:"stages"`
+	Precondition    *Precondition   `json:"precondition,omitempty"`
+	Stages          []Stage         `json:"stages,omitempty"`
 	WorktreeRef     string          `json:"worktree_ref,omitempty"`
 	Inputs          *Inputs         `json:"inputs,omitempty"`
 	Result          *NodeResult     `json:"result,omitempty"`

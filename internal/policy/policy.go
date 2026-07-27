@@ -194,8 +194,14 @@ func (h *Harness) Validate() error {
 		return err
 	}
 	for _, kind := range dag.AllKinds {
-		route, ok := h.Routes[string(kind)]
-		if !ok {
+		route, declared := h.Routes[string(kind)]
+		if kind.OperatorConfirmed() {
+			if declared {
+				return fmt.Errorf("routes.%s declares stages for a kind an operator confirms; there is no artifact for a role to author, so it takes no route", kind)
+			}
+			continue
+		}
+		if !declared {
 			return fmt.Errorf("routes are not exhaustive: no route for deliverable kind %q", kind)
 		}
 		if err := h.checkStages(fmt.Sprintf("routes.%s", kind), route.Stages); err != nil {
@@ -255,9 +261,14 @@ func (h *Harness) checkReviewRole(where, role string) error {
 
 // StagesFor returns the stages a node of the given deliverable kind runs.
 // Routing is exhaustive by construction — Validate refuses a policy missing
-// any kind — so an unrouted kind is a caller error, never a fallback to a
-// builder.
+// any authored kind — so an unrouted kind is a caller error, never a fallback
+// to a builder. An operator-confirmed kind is refused here as well: asking a
+// harness for a gate's stages is asking who should author what a gate does not
+// produce.
 func (h *Harness) StagesFor(kind dag.DeliverableKind) ([]Stage, error) {
+	if kind.OperatorConfirmed() {
+		return nil, fmt.Errorf("policy: deliverable kind %q is verified by an operator confirmation and runs no stages", kind)
+	}
 	route, ok := h.Routes[string(kind)]
 	if !ok {
 		return nil, fmt.Errorf("policy: no route for deliverable kind %q", kind)

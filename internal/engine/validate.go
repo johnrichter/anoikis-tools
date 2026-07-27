@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/johnrichter/anoikis-tools/internal/dag"
+	"github.com/johnrichter/anoikis-tools/internal/dispatch/routing"
 	"github.com/johnrichter/anoikis-tools/internal/ids"
 	"github.com/johnrichter/anoikis-tools/internal/policy"
 )
@@ -74,7 +75,7 @@ func Validate(st dag.State, h *policy.Harness, scheme ids.Scheme, details map[st
 			}
 			seen[n.ID] = true
 			rep.Problems = append(rep.Problems, validateNode(h, scheme, n, details)...)
-			if unbatchable(h, n) {
+			if !operatorConfirmed(details, n.ID) && unbatchable(h, n) {
 				rep.Unbatchable++
 			}
 		}
@@ -83,7 +84,8 @@ func Validate(st dag.State, h *policy.Harness, scheme ids.Scheme, details map[st
 }
 
 // validateNode checks one node against the id scheme, the declared resource
-// domains, and the route its deliverable kind selects.
+// domains, and the path its deliverable kind resolves to — a dispatch route for
+// the kinds an agent authors, an operator's confirmation for a gate.
 func validateNode(h *policy.Harness, scheme ids.Scheme, n dag.Node, details map[string]dag.Detail) []Problem {
 	var out []Problem
 	if err := scheme.Validate(n.ID); err != nil {
@@ -114,7 +116,7 @@ func validateNode(h *policy.Harness, scheme ids.Scheme, n dag.Node, details map[
 	if n.NeverDispatch {
 		return out
 	}
-	if len(n.Surface) == 0 {
+	if len(n.Surface) == 0 && !operatorConfirmed(details, n.ID) {
 		out = append(out, Problem{
 			Code: "surface.empty", Subject: n.ID,
 			Message: fmt.Sprintf("node %s declares no resource surface; it can never be co-batched and its changes cannot be re-asserted after a merge", n.ID),
@@ -132,10 +134,52 @@ func validateNode(h *policy.Harness, scheme ids.Scheme, n dag.Node, details map[
 		})
 		return out
 	}
-	if _, err := resolveStages(h, detail); err != nil {
+	resolved, err := routing.Route(h, detail)
+	if err != nil {
+		return append(out, Problem{Code: "node.route", Subject: n.ID, Message: err.Error()})
+	}
+	if !resolved.Dispatched() {
+		return append(out, gateProblems(n.ID, detail)...)
+	}
+	if _, err := resolveStages(h, detail, resolved.Stages); err != nil {
 		out = append(out, Problem{Code: "node.route", Subject: n.ID, Message: err.Error()})
 	}
 	return out
+}
+
+// gateProblems checks the contract of a node an operator confirms: it declares
+// nothing only a dispatch could produce, and whatever record it carries attests
+// to the signal it declares.
+//
+// A gate with no record at all is not a problem. That is simply a gate no
+// operator has reached yet: it blocks its dependents until one does, which is
+// the build's business rather than the plan's.
+func gateProblems(id string, detail dag.Detail) []Problem {
+	var out []Problem
+	if len(detail.Stages) > 0 || detail.Result != nil || detail.WorktreeRef != "" {
+		out = append(out, Problem{
+			Code: "gate.deliverable", Subject: id,
+			Message: fmt.Sprintf("node %s is verified by an operator confirmation but declares what only a dispatch produces; a gate has no stages, no worktree and no result", id),
+		})
+	}
+	if detail.Precondition.Confirmation == nil {
+		return out
+	}
+	if _, err := routing.Confirmed(*detail.Precondition); err != nil {
+		out = append(out, Problem{
+			Code: "gate.confirmation", Subject: id,
+			Message: fmt.Sprintf("node %s carries a confirmation that does not attest to its signal: %s", id, err.Error()),
+		})
+	}
+	return out
+}
+
+// operatorConfirmed reports whether a node's detail names a kind an operator
+// confirms. Such a node is never batched and never dispatched, so the checks
+// that speak to a dispatch do not apply to it.
+func operatorConfirmed(details map[string]dag.Detail, id string) bool {
+	d, ok := details[id]
+	return ok && d.DeliverableKind.OperatorConfirmed()
 }
 
 // unbatchable reports whether a node can never be proven disjoint from
