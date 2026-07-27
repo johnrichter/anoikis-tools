@@ -28,6 +28,7 @@ require (
 	github.com/knadh/koanf/v2 v2.3.5
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
+	go.yaml.in/yaml/v3 v3.0.4
 )
 
 require (
@@ -48,7 +49,6 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rs/zerolog v1.35.1 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
