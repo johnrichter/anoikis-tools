@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.anoikis.dev/anoikis/harness-policy.schema.json",
+  "title": "Anoikis harness policy",
+  "description": "Everything about a particular harness the engine core refuses to know: which stages a node runs, which role each stage dispatches to, the gate and signing vocabulary, the document mirrors, the resource domains a surface may claim, and the always-on post-merge backstop command. Injected as a file; never compiled in.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "name", "id_scheme", "workflow", "roles", "routes", "gates", "surfaces", "backstop"],
+  "properties": {
+    "schema_version": { "$ref": "#/$defs/semver" },
+    "name": { "$ref": "#/$defs/token" },
+    "id_scheme": { "$ref": "#/$defs/token" },
+    "workflow": {
+      "description": "The ordered stages every node runs, in order. Review is not a stage — it is chosen by a node's verify_tier.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stages"],
+      "properties": {
+        "stages": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/stage" } }
+      }
+    },
+    "roles": {
+      "description": "Every dispatchable role, keyed by the name stages and routes reference.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/token" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["agent", "brief"],
+        "properties": {
+          "agent": { "$ref": "#/$defs/token" },
+          "brief": { "type": "string", "minLength": 1 },
+          "builder": {
+            "description": "True for a role that authors an artifact. Routing uses this to keep non-artifact work away from builders.",
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    },
+    "routes": {
+      "description": "Deliverable kind to stage set. Routing is exhaustive over the kinds the node schema declares; there is no default-to-builder fallback.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/token" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stages"],
+        "properties": {
+          "stages": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/stage" } },
+          "review_role": { "$ref": "#/$defs/token" }
+        }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["main_branch", "build_branch", "verdicts"],
+      "properties": {
+        "main_branch": {
+          "description": "The one branch a gate merge may target under review and signing. Every other target merges autonomously and unsigned.",
+          "$ref": "#/$defs/token"
+        },
+        "build_branch": { "$ref": "#/$defs/token" },
+        "deep_review_modes": { "type": "array", "items": { "$ref": "#/$defs/token" } },
+        "verdicts": {
+          "description": "The closed review-verdict vocabulary. A verdict outside this set is refused, never coerced.",
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/token" }
+        },
+        "fix_verdict": { "$ref": "#/$defs/token" },
+        "review_role": { "$ref": "#/$defs/token" }
+      }
+    },
+    "mirrors": {
+      "description": "Markdown mirror templates keyed by artifact kind. An artifact with a mirror is never written without it.",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/token" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["template"],
+        "properties": { "template": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "surfaces": {
+      "description": "The resource domains a node surface may claim. A claim in an unregistered domain makes its node unsafe to co-batch, by design.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "kind"],
+        "properties": {
+          "name": { "$ref": "#/$defs/token" },
+          "kind": { "enum": ["path", "namespace"] },
+          "separator": { "type": "string", "minLength": 1, "maxLength": 4 },
+          "case_insensitive": { "type": "boolean", "default": false }
+        }
+      }
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_group_size": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "backstop": {
+      "description": "The post-merge compile check. Always runs after a layer merge; a policy without a command is refused rather than skipping the check.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command"],
+      "properties": {
+        "command": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "timeout_seconds": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "findings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "blocking_threshold": {
+          "description": "Criticality (impact x urgency) at or above which a finding blocks the build.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 25
+        }
+      }
+    },
+    "tier": {
+      "description": "The model/effort band the driving session self-checks against before it dispatches.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["floor_model", "ceiling_model"],
+      "properties": {
+        "floor_model": { "type": "string", "minLength": 1 },
+        "floor_effort": { "type": "string" },
+        "ceiling_model": { "type": "string", "minLength": 1 },
+        "ceiling_effort": { "type": "string" }
+      }
+    },
+    "usage": {
+      "description": "Where the spend seam reads session transcripts from. Absent means no usage provider is wired and spend reports as unknown, never as zero.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "transcript_root": { "type": "string", "minLength": 1 },
+        "scope": { "type": "string", "minLength": 1 },
+        "index_path": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "semver": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "token": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$" },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage", "role"],
+      "properties": {
+        "stage": { "$ref": "#/$defs/token" },
+        "role": { "$ref": "#/$defs/token" },
+        "model": { "type": "string", "minLength": 1 },
+        "context_window": { "type": "string", "minLength": 1 },
+        "effort": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
