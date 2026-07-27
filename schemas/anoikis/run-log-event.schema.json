@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.anoikis.dev/anoikis/run-log-event.schema.json",
+  "title": "Anoikis run-log event",
+  "description": "One line of the append-only run log: a single state transition, never a mutable record. Resume is decided entirely from the latest event per run_id, so every field a replay needs — the commit the worktree branched from, the rendered prompt, its digest — is persisted here at dispatch time rather than reconstructed afterwards.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "ts", "run_id", "node_id", "event"],
+  "properties": {
+    "schema_version": { "$ref": "#/$defs/semver" },
+    "ts": { "type": "string", "format": "date-time" },
+    "run_id": { "$ref": "#/$defs/token" },
+    "node_id": { "$ref": "#/$defs/token" },
+    "event": { "enum": ["dispatched", "complete", "failed", "merged", "grafted"] },
+    "role": { "$ref": "#/$defs/token" },
+    "layer_seq": { "type": "integer", "minimum": 0 },
+    "model": { "type": "string", "minLength": 1 },
+    "context_window": { "type": "string", "minLength": 1 },
+    "effort": { "type": "string", "minLength": 1 },
+    "worktree_ref": { "type": "string", "minLength": 1 },
+    "base_ref": {
+      "description": "The commit the node's worktree branched from. A hard-kill resume hard-resets to this before replaying the prompt verbatim.",
+      "type": "string",
+      "minLength": 1
+    },
+    "prompt_ref": { "type": "string", "minLength": 1 },
+    "prompt_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "run_result_ref": {
+      "description": "The durable result this run produced. It is the only reference an event carries to a run's output; the artifacts themselves are listed inside that result.",
+      "type": "string",
+      "minLength": 1
+    },
+    "detail": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["known"],
+      "properties": {
+        "known": { "type": "boolean" },
+        "reason": { "type": "string", "minLength": 1 },
+        "cost_usd": { "type": "number", "minimum": 0 },
+        "input_tokens": { "type": "integer", "minimum": 0 },
+        "cache_creation_tokens": { "type": "integer", "minimum": 0 },
+        "cache_read_tokens": { "type": "integer", "minimum": 0 },
+        "output_tokens": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "semver": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "token": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$" }
+  }
+}

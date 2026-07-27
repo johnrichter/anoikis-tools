@@ -245,3 +245,15 @@ tmp/
 **/.claude/settings.local.json
 # Claude Code git worktrees at the repo root
 .claude/worktrees/
+
+###############################################################################
+# Anoikis effort directories
+###############################################################################
+
+# Everything an effort produces is committed so a build can resume and be
+# audited, except the two classes that are ephemeral by construction: a raw
+# per-run log (its durable slice is copied into the run's result) and a node's
+# own git worktree (recreated from its base commit on demand).
+.anoikis/*/logs/
+.anoikis/*/worktrees/
+>>>>>>> feat/toolbelt-M5.P1.T1

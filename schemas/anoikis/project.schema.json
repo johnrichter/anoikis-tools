@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.anoikis.dev/anoikis/project.schema.json",
+  "title": "Anoikis project manifest",
+  "description": "The always-loaded, deliberately tiny head of an effort: identity, budget, signing policy, carryover, and where every other artifact lives. Carryover is inline here because it is the sole memory that crosses a gate or a version boundary.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "name", "version", "status", "budget", "signing", "refs"],
+  "properties": {
+    "schema_version": { "$ref": "#/$defs/semver" },
+    "id": { "$ref": "#/$defs/token" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "version": { "$ref": "#/$defs/semver" },
+    "status": { "enum": ["draft", "ready", "building", "blocked", "complete"] },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "from_design": { "$ref": "#/$defs/semver" },
+        "folded_findings": { "type": "array", "items": { "$ref": "#/$defs/token" } }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ceiling_usd", "enforced_at"],
+      "properties": {
+        "ceiling_usd": { "type": "number", "minimum": 0 },
+        "spent_usd": {
+          "description": "What the priced runs cost. A floor rather than a total whenever unpriced_runs is above zero.",
+          "type": "number",
+          "minimum": 0
+        },
+        "unpriced_runs": {
+          "description": "How many runs the usage provider could not price. One is enough to make recorded spend unknown as a whole, so a ceiling is never enforced against it; spend that cannot be measured is never absorbed as zero.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "enforced_at": { "enum": ["layer", "gate", "never"] }
+      }
+    },
+    "signing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["below_main", "main_merge"],
+      "properties": {
+        "below_main": { "enum": ["never"] },
+        "main_merge": { "enum": ["resign-all+sign-merge-commit"] }
+      }
+    },
+    "carryover": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "build_branch": { "$ref": "#/$defs/token" },
+    "base_ref": { "type": "string", "minLength": 1 },
+    "refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["graph", "run_log", "gates", "findings", "nodes", "results", "prompts", "archive", "cursor"],
+      "properties": {
+        "graph": { "type": "string", "minLength": 1 },
+        "run_log": { "type": "string", "minLength": 1 },
+        "gates": { "type": "string", "minLength": 1 },
+        "findings": { "type": "string", "minLength": 1 },
+        "nodes": { "type": "string", "minLength": 1 },
+        "results": { "type": "string", "minLength": 1 },
+        "prompts": { "type": "string", "minLength": 1 },
+        "archive": { "type": "string", "minLength": 1 },
+        "cursor": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "semver": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "token": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$" }
+  }
+}
