@@ -204,3 +204,25 @@ func TestEveryEphemeralDirectoryIsCreated(t *testing.T) {
 		}
 	}
 }
+
+func TestAGateDetailRoundTripsWithNoDispatchArtifacts(t *testing.T) {
+	s := store(t)
+	signal := "the release repo exists and is clonable"
+	if err := s.SaveDetail(dag.Detail{
+		ID: "g", Intent: "confirm the signal before anything is tagged", DeliverableKind: dag.KindGate,
+		Acceptance:   []string{"an operator confirmed it, and the record says who, when and against what"},
+		Precondition: &dag.Precondition{Signal: signal},
+	}); err != nil {
+		t.Fatalf("save a gate detail: %v", err)
+	}
+	loaded, err := s.LoadDetail("g")
+	if err != nil {
+		t.Fatalf("load a gate detail: %v", err)
+	}
+	if loaded.Precondition == nil || loaded.Precondition.Signal != signal {
+		t.Fatalf("the gate lost the signal it declares: %+v", loaded)
+	}
+	if len(loaded.Stages) != 0 {
+		t.Errorf("a gate came back with stages %v", loaded.Stages)
+	}
+}

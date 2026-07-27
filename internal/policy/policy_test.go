@@ -19,10 +19,13 @@ func TestLoadExamplePolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load example policy: %v", err)
 	}
-	for _, kind := range dag.AllKinds {
+	for _, kind := range dag.AuthoredKinds {
 		if _, err := h.StagesFor(kind); err != nil {
 			t.Errorf("StagesFor(%s): %v", kind, err)
 		}
+	}
+	if _, err := h.StagesFor(dag.KindGate); err == nil {
+		t.Error("a harness supplied stages for a kind an operator confirms")
 	}
 	if _, err := h.Prover(); err != nil {
 		t.Errorf("Prover: %v", err)

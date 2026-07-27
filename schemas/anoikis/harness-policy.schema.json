@@ -40,9 +40,10 @@
       }
     },
     "routes": {
-      "description": "Deliverable kind to stage set. Routing is exhaustive over the kinds the node schema declares; there is no default-to-builder fallback.",
+      "description": "Deliverable kind to stage set. Routing is exhaustive over the kinds the node schema declares; there is no default-to-builder fallback. An operator-confirmed kind takes no route at all: a gate is verified by a recorded operator confirmation, so declaring stages for it would dispatch work that has no artifact to author.",
       "type": "object",
       "minProperties": 1,
+      "not": { "required": ["gate"] },
       "propertyNames": { "$ref": "#/$defs/token" },
       "additionalProperties": {
         "type": "object",

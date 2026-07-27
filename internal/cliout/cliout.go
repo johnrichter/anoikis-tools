@@ -95,12 +95,35 @@ func Directive(command []string, d engine.Directive, data map[string]any) (*clik
 // anything unrecognised is internal rather than being flattened into a
 // generic failure that hides which layer broke.
 func Failure(command []string, subsystem string, err error) (*clikit.Result, error) {
+	var self selfDescribing
+	if errors.As(err, &self) {
+		diag, buildErr := self.Diagnostic()
+		if buildErr != nil {
+			return nil, buildErr
+		}
+		return record(command, self.Status(), []clikit.Diagnostic{diag})
+	}
 	status, code, triage := classify(subsystem, err)
 	diag, buildErr := clikit.NewError(code, OneLine(err.Error()), triage, nil)
 	if buildErr != nil {
 		return nil, buildErr
 	}
-	errs := []clikit.Diagnostic{diag}
+	return record(command, status, []clikit.Diagnostic{diag})
+}
+
+// selfDescribing is an error that names its own outcome class and renders its
+// own diagnostic. A subsystem raising one has already decided both — an unmet
+// operator precondition is not an internal failure, and the triage that clears
+// it is specific — so the mapping below leaves them alone rather than
+// re-deriving them from the error's type.
+type selfDescribing interface {
+	error
+	Status() clikit.Status
+	Diagnostic() (clikit.Diagnostic, error)
+}
+
+// record builds the result for one outcome class and its diagnostics.
+func record(command []string, status clikit.Status, errs []clikit.Diagnostic) (*clikit.Result, error) {
 	switch status {
 	case clikit.StatusPreconditionUnmet:
 		return clikit.NewPreconditionUnmet(command, nil, errs, nil)

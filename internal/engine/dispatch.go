@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/johnrichter/anoikis-tools/internal/dag"
+	"github.com/johnrichter/anoikis-tools/internal/dispatch/routing"
 	"github.com/johnrichter/anoikis-tools/internal/policy"
 )
 
@@ -44,10 +45,18 @@ type Dispatch struct {
 //
 // Every stage's role, model and tier come from the route the node's
 // deliverable kind selects, falling back to the harness's default workflow —
-// there is no path by which an unrouted kind reaches a builder. The result is
-// a pure function of the state and policy passed in, so the same layer plans
+// there is no path by which an unrouted kind reaches a builder. A node an
+// operator confirms is refused outright: it has no stages, no role and no
+// artifact, so a dispatch is not a weaker way to verify it but the wrong one,
+// and neither is a node standing behind an unconfirmed one. The result is a
+// pure function of the state and policy passed in, so the same layer plans
 // identically on every machine.
+//
+// details holds every node whose gates bear on this batch, not only its
+// members: a member's dependencies are read to establish that nothing is built
+// behind a gate an operator has not confirmed.
 func PlanDispatch(st dag.State, h *policy.Harness, details map[string]dag.Detail, members []string, layerSeq int, env Env) ([]Dispatch, error) {
+	edges, gates := declaredDeps(st), routing.Collect(details)
 	out := make([]Dispatch, 0, len(members))
 	for _, id := range members {
 		node, ok := st.Node(id)
@@ -61,7 +70,17 @@ func PlanDispatch(st dag.State, h *policy.Harness, details map[string]dag.Detail
 		if !ok {
 			return nil, fmt.Errorf("engine: no detail record loaded for node %s", id)
 		}
-		stages, err := resolveStages(h, detail)
+		resolved, err := routing.Route(h, detail)
+		if err != nil {
+			return nil, err
+		}
+		if !resolved.Dispatched() {
+			return nil, routing.NotDispatchable(detail)
+		}
+		if err := routing.Admit(edges, gates, id); err != nil {
+			return nil, err
+		}
+		stages, err := resolveStages(h, detail, resolved.Stages)
 		if err != nil {
 			return nil, err
 		}
@@ -73,7 +92,7 @@ func PlanDispatch(st dag.State, h *policy.Harness, details map[string]dag.Detail
 			Stages:      stages,
 		}
 		if node.VerifyTier == dag.VerifyImmediateDeep {
-			d.ReviewRole = h.ReviewRoleFor(detail.DeliverableKind)
+			d.ReviewRole = resolved.ReviewRole
 		}
 		d.Prompt = RenderPrompt(h, node, detail, d)
 		out = append(out, d)
@@ -81,14 +100,10 @@ func PlanDispatch(st dag.State, h *policy.Harness, details map[string]dag.Detail
 	return out, nil
 }
 
-// resolveStages resolves a node's stages against the route its deliverable
-// kind selects, filling each stage's tier from the node's own declaration
-// where it has one and from the route otherwise.
-func resolveStages(h *policy.Harness, detail dag.Detail) ([]StageDispatch, error) {
-	routed, err := h.StagesFor(detail.DeliverableKind)
-	if err != nil {
-		return nil, err
-	}
+// resolveStages resolves a node's routed stages to the agents that run them,
+// filling each stage's tier from the node's own declaration where it has one
+// and from the route otherwise.
+func resolveStages(h *policy.Harness, detail dag.Detail, routed []policy.Stage) ([]StageDispatch, error) {
 	declared := map[string]dag.Stage{}
 	for _, s := range detail.Stages {
 		declared[s.Stage] = s

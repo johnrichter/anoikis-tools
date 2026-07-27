@@ -62,6 +62,14 @@ func runMergeGate(cmd *cobra.Command, _ []string) error {
 			gateID, gate.Policy.DeepReview, gate.Status, cliout.Tool)))
 	}
 
+	// A boundary merge is what makes work permanent, so it is the last point at
+	// which an operator gate can still be accounted for. One whose confirmation
+	// is absent or incomplete holds the merge, whatever status the graph has
+	// come to record for its node.
+	if err := engine.OperatorHold(st, s.nodeDetails(st)); err != nil {
+		return fail(cmd, "engine", err)
+	}
+
 	branch := st.Project.BuildBranch
 	if branch == "" {
 		branch = s.harness.Gates.BuildBranch
