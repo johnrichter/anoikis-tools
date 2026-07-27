@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0.0",
+  "name": "example",
+  "id_scheme": "opaque",
+  "workflow": {
+    "stages": [
+      { "stage": "build", "role": "builder", "model": "claude-sonnet-5", "context_window": "200k", "effort": "high" },
+      { "stage": "test", "role": "tester", "model": "claude-sonnet-5", "context_window": "200k", "effort": "medium" }
+    ]
+  },
+  "roles": {
+    "builder": {
+      "agent": "software-engineer",
+      "brief": "Implement the node to its acceptance criteria. Read the surrounding code first and match its conventions. Stay inside the declared resource surface.",
+      "builder": true
+    },
+    "tester": {
+      "agent": "test-engineer",
+      "brief": "Exercise the node's acceptance criteria adversarially. Report pass or fail with structured diagnostics; do not repair the code under test.",
+      "builder": true
+    },
+    "reviewer": {
+      "agent": "quality-reviewer",
+      "brief": "Judge the accumulated diff against the acceptance criteria and return a structured verdict. Author no artifact: the verdict is the deliverable.",
+      "builder": false
+    }
+  },
+  "routes": {
+    "code": {
+      "stages": [
+        { "stage": "build", "role": "builder", "model": "claude-sonnet-5", "context_window": "200k", "effort": "high" },
+        { "stage": "test", "role": "tester", "model": "claude-sonnet-5", "context_window": "200k", "effort": "medium" }
+      ],
+      "review_role": "reviewer"
+    },
+    "docs": {
+      "stages": [
+        { "stage": "build", "role": "builder", "model": "claude-sonnet-5", "context_window": "200k", "effort": "medium" }
+      ],
+      "review_role": "reviewer"
+    }
+  },
+  "gates": {
+    "main_branch": "main",
+    "build_branch": "build",
+    "deep_review_modes": ["batched", "none"],
+    "verdicts": ["pass", "fix"],
+    "fix_verdict": "fix",
+    "review_role": "reviewer"
+  },
+  "mirrors": {
+    "project": {
+      "template": "# {{.name}} — {{.version}}\n\n- Status: {{.status}}\n- Budget ceiling: {{.budget.ceiling_usd}} USD, enforced at {{.budget.enforced_at}}\n- Signing below main: {{.signing.below_main}}\n- Main merge: {{.signing.main_merge}}\n\n## Carryover\n\n{{range .carryover}}- {{.}}\n{{else}}_none_\n{{end}}"
+    }
+  },
+  "surfaces": [
+    { "name": "path", "kind": "path" }
+  ],
+  "admission": { "max_group_size": 4 },
+  "backstop": {
+    "command": ["language-tools", "build", "--language", "go", "--dir", "."],
+    "timeout_seconds": 600
+  },
+  "findings": { "blocking_threshold": 15 },
+  "tier": {
+    "floor_model": "claude-sonnet-5",
+    "floor_effort": "medium",
+    "ceiling_model": "claude-opus-5",
+    "ceiling_effort": "xhigh"
+  }
+}

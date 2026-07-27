@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.anoikis.dev/anoikis/node.schema.json",
+  "title": "Anoikis node detail",
+  "description": "Everything about one node that is read only when it is dispatched or inspected: what it is for, what would make it acceptable, which stages run it, and what it produced. Kept out of the graph shard so the scheduling hot path never pays for it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "intent", "deliverable_kind", "acceptance"],
+  "properties": {
+    "schema_version": { "$ref": "#/$defs/semver" },
+    "id": { "$ref": "#/$defs/token" },
+    "intent": { "type": "string", "minLength": 1 },
+    "deliverable_kind": {
+      "description": "What the node delivers, and therefore how it is verified. code and docs deliver an artifact an agent authors. gate delivers none: it is an operator-precondition boundary, verified by a recorded operator confirmation of the signal it declares, so it is never dispatched to a role that would author an artifact instead of verifying a signal.",
+      "enum": ["code", "docs", "gate"]
+    },
+    "acceptance": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "precondition": {
+      "description": "A gate's contract: the operator signal it requires, and the confirmation that satisfies it. Every gate declares one and no other kind may. An absent or incomplete confirmation leaves the gate unmet, which blocks its dependents — reaching a gate never satisfies it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signal"],
+      "properties": {
+        "signal": {
+          "description": "What an operator must confirm is true, stated so that confirming it is one yes-or-no act.",
+          "type": "string",
+          "minLength": 1
+        },
+        "confirmation": { "$ref": "#/$defs/confirmation" }
+      }
+    },
+    "stages": {
+      "description": "Build-side stages only, in run order. Review is never a stage; it is chosen by verify_tier.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stage", "role", "model"],
+        "properties": {
+          "stage": { "$ref": "#/$defs/token" },
+          "role": { "$ref": "#/$defs/token" },
+          "model": { "type": "string", "minLength": 1 },
+          "context_window": { "type": "string", "minLength": 1 },
+          "effort": { "type": "string", "minLength": 1 },
+          "model_justification": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "worktree_ref": { "type": "string", "minLength": 1 },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "spec_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "artifact_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "run_result_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "finding_refs": { "type": "array", "items": { "$ref": "#/$defs/token" } },
+        "usage": { "$ref": "#/$defs/usage" }
+      }
+    }
+  },
+  "if": {
+    "required": ["deliverable_kind"],
+    "properties": { "deliverable_kind": { "const": "gate" } }
+  },
+  "then": {
+    "description": "A gate is confirmed, not dispatched, so it declares nothing that only a dispatch produces: no stages, no worktree, no result.",
+    "required": ["precondition"],
+    "properties": { "stages": false, "worktree_ref": false, "result": false }
+  },
+  "else": {
+    "description": "Every other kind is authored by an agent: it runs stages, and it declares no operator precondition.",
+    "required": ["stages"],
+    "properties": { "precondition": false }
+  },
+  "$defs": {
+    "semver": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "token": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$" },
+    "confirmation": {
+      "description": "One recorded operator confirmation: who confirmed, when, and the signal they confirmed against. All three are load-bearing — a record missing any of them attests to nothing, so it is refused rather than read as a confirmation.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["by", "at", "against"],
+      "properties": {
+        "by": { "description": "The operator who confirmed.", "type": "string", "minLength": 1 },
+        "at": { "description": "When they confirmed.", "type": "string", "format": "date-time", "minLength": 1 },
+        "against": { "description": "The signal confirmed, restated so the record stands on its own.", "type": "string", "minLength": 1 }
+      }
+    },
+    "usage": {
+      "description": "Spend and tokens for a run, always from the usage provider and never self-reported by the agent that ran. known=false means the provider could not price the run; the figures are then meaningless and must not be summed.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["known"],
+      "properties": {
+        "known": { "type": "boolean" },
+        "reason": { "type": "string", "minLength": 1 },
+        "cost_usd": { "type": "number", "minimum": 0 },
+        "input_tokens": { "type": "integer", "minimum": 0 },
+        "cache_creation_tokens": { "type": "integer", "minimum": 0 },
+        "cache_read_tokens": { "type": "integer", "minimum": 0 },
+        "output_tokens": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

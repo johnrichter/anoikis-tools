@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.anoikis.dev/anoikis/graph-index.schema.json",
+  "title": "Anoikis graph index",
+  "description": "The tiny top of the sharded graph: one row per gate shard with its status counts, so a status flip rewrites one small shard and never the whole graph.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "shards"],
+  "properties": {
+    "schema_version": { "$ref": "#/$defs/semver" },
+    "updated": { "type": "string", "format": "date-time" },
+    "shards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["gate_id", "ref", "counts"],
+        "properties": {
+          "gate_id": { "$ref": "#/$defs/token" },
+          "ref": { "type": "string", "minLength": 1 },
+          "counts": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "blocked": { "type": "integer", "minimum": 0 },
+              "ready": { "type": "integer", "minimum": 0 },
+              "running": { "type": "integer", "minimum": 0 },
+              "done": { "type": "integer", "minimum": 0 },
+              "failed": { "type": "integer", "minimum": 0 },
+              "archived": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "semver": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "token": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$" }
+  }
+}

@@ -1,0 +1,10 @@
+# golangci-lint v2 config. Version pin lives in CI -- this file only pins
+# the config schema version golangci-lint must parse it as.
+version: "2"
+
+linters:
+  default: standard
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
