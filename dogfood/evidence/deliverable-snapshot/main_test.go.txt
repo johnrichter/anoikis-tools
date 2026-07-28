@@ -1,0 +1,110 @@
+package main
+
+import (
+	"bytes"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestRun_StdinDefaultWhenNoPathGiven(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run(nil, strings.NewReader(`{"node_id":"n1","event":"dispatched"}`+"\n"), &stdout, &stderr)
+
+	if code != 0 {
+		t.Fatalf("exit code=%d, want 0; stderr=%q", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "=== Per-node_id ===") {
+		t.Fatalf("expected summary block on stdout, got:\n%s", stdout.String())
+	}
+}
+
+func TestRun_DashArgReadsStdin(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"-"}, strings.NewReader(`{"node_id":"n1","event":"dispatched"}`+"\n"), &stdout, &stderr)
+
+	if code != 0 {
+		t.Fatalf("exit code=%d, want 0; stderr=%q", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "=== Per-node_id ===") {
+		t.Fatalf("expected summary block on stdout, got:\n%s", stdout.String())
+	}
+}
+
+func TestRun_FilePathArgument(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "log.jsonl")
+	if err := os.WriteFile(path, []byte(`{"node_id":"n1","event":"complete"}`+"\n"), 0o644); err != nil {
+		t.Fatalf("writing fixture file: %v", err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	code := run([]string{path}, strings.NewReader(""), &stdout, &stderr)
+
+	if code != 0 {
+		t.Fatalf("exit code=%d, want 0; stderr=%q", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "=== Per-node_id ===") {
+		t.Fatalf("expected summary block on stdout, got:\n%s", stdout.String())
+	}
+}
+
+func TestRun_UnreadablePathIsFatal(t *testing.T) {
+	dir := t.TempDir()
+	missing := filepath.Join(dir, "does-not-exist.jsonl")
+
+	var stdout, stderr bytes.Buffer
+	code := run([]string{missing}, strings.NewReader(""), &stdout, &stderr)
+
+	if code == 0 {
+		t.Fatalf("exit code=0, want non-zero for a path that does not exist (os.Open failure)")
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("expected no stdout summary, got:\n%s", stdout.String())
+	}
+	if stderr.Len() == 0 {
+		t.Fatalf("expected an error message on stderr")
+	}
+}
+
+// TestRun_PostOpenReadFailureIsFatal covers a path that os.Open succeeds on
+// but that fails on the subsequent read (a directory returns EISDIR on
+// Read). This is distinct from TestRun_UnreadablePathIsFatal, which only
+// exercises the os.Open failure path for a missing file: a read failure
+// that happens after a successful open must also be reported as fatal
+// rather than silently treated as an empty, fully-read input.
+func TestRun_PostOpenReadFailureIsFatal(t *testing.T) {
+	dir := t.TempDir()
+
+	var stdout, stderr bytes.Buffer
+	code := run([]string{dir}, strings.NewReader(""), &stdout, &stderr)
+
+	if code == 0 {
+		t.Fatalf("exit code=0, want non-zero for a path that opens but fails to read (directory)")
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("expected no stdout summary when the read fails, got:\n%s", stdout.String())
+	}
+	if stderr.Len() == 0 {
+		t.Fatalf("expected an error message on stderr when the read fails")
+	}
+}
+
+func TestRun_SkippedLinesAreNotFatal(t *testing.T) {
+	input := `{"node_id":"n1","event":"dispatched"}
+not json
+`
+	var stdout, stderr bytes.Buffer
+	code := run(nil, strings.NewReader(input), &stdout, &stderr)
+
+	if code != 0 {
+		t.Fatalf("exit code=%d, want 0 (a skipped line alone must not fail the run)", code)
+	}
+	if !strings.Contains(stdout.String(), "=== Per-node_id ===") {
+		t.Fatalf("expected summary block on stdout, got:\n%s", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "skipped 1") {
+		t.Fatalf("expected stderr to note the skipped line, got:\n%s", stderr.String())
+	}
+}

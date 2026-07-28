@@ -1,0 +1,21 @@
+{
+  "node_id": "fix-054e9eeb-0",
+  "stage": "test",
+  "status": "pass",
+  "checks": [
+    {"name": "findings_register_empty", "result": "pass", "detail": "findings.json entries array is empty; zero entries scoped to this node, confirmed by direct read"},
+    {"name": "go_build", "result": "pass", "detail": "go build ./... exit 0"},
+    {"name": "go_vet", "result": "pass", "detail": "go vet ./... exit 0"},
+    {"name": "go_test", "result": "pass", "detail": "go test ./... -count=1 -v exit 0; 21 tests, 21 PASS, 0 FAIL"},
+    {"name": "go_mod_unchanged", "result": "pass", "detail": "go.mod: module github.com/dogfood/runlog-stats, go 1.23, no require directives (stdlib only)"},
+    {"name": "required_test_cases_present", "result": "pass", "detail": "TestSummarize_AllFiveEventValues, _EventWithNoRole, _NoUsageObject/_UsageKnownFalse/_UsageKnownTrueNoCost (three unpriced shapes), _MalformedLine, _MissingRequiredField, _EmptyInput, _LineLongerThanDefaultScannerLimit all present and passing"},
+    {"name": "fixture_cost_total", "result": "pass", "detail": "hand-verified testdata/fixture.jsonl against runlogstats.go summing logic: lines 1-2 priced (0.12+0.34=0.46), lines 3-7 unpriced (known=false x3, no-usage x1, known=true-no-cost x1) = 5 unpriced of 7 events counted, 2 lines skipped (non-JSON, missing node_id); matches asserted total_cost_usd: 0.4600 and unpriced_events: 5"},
+    {"name": "deterministic_output", "result": "pass", "detail": "TestRender_DeterministicAcrossRuns and TestRender_SortOrderAscendingByByteOrder pass; Render sorts via sortedKeys (byte-order string sort), no map-iteration nondeterminism"},
+    {"name": "reconciling_accounting_line", "result": "pass", "detail": "Render emits 'lines_read = events_counted + lines_skipped' and 'events_counted = sum of events_counted_by_kind values' notes; verified arithmetically consistent against fixture (9 = 7 + 2)"},
+    {"name": "exit_codes_read_failures", "result": "pass", "detail": "TestRun_UnreadablePathIsFatal (os.Open failure on missing path) and TestRun_PostOpenReadFailureIsFatal (directory opens but fails on Read/EISDIR) both assert non-zero exit and stderr message, empty stdout; main.go returns 1 for both distinct failure paths"},
+    {"name": "surface_confinement", "result": "pass", "detail": "full repo file listing shows only main.go, main_test.go, internal/runlogstats/{runlogstats.go,runlogstats_test.go}, testdata/fixture.jsonl as code/test surface; README.md, docs/usage.md, go.mod predate this node and are untouched by it; git status clean, no commits authored by this node beyond prior layer merges"}
+  ],
+  "gaps": [],
+  "regressions_found": false,
+  "findings_missed": false
+}

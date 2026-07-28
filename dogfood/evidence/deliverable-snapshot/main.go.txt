@@ -1,0 +1,52 @@
+// Command runlog-stats reads one anoikis run-log.jsonl (positional path, or
+// stdin when the path is absent or "-") and prints a per-node_id, per-role,
+// and cost summary to stdout.
+package main
+
+import (
+	"fmt"
+	"io"
+	"os"
+
+	"github.com/dogfood/runlog-stats/internal/runlogstats"
+)
+
+func main() {
+	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+}
+
+// run implements the CLI over explicit args/stdin/stdout/stderr so tests can
+// exercise it without spawning a subprocess.
+func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	path := ""
+	if len(args) > 0 {
+		path = args[0]
+	}
+
+	var r io.Reader
+	if path == "" || path == "-" {
+		r = stdin
+	} else {
+		f, err := os.Open(path)
+		if err != nil {
+			fmt.Fprintf(stderr, "runlog-stats: %v\n", err)
+			return 1
+		}
+		defer f.Close()
+		r = f
+	}
+
+	summary, err := runlogstats.Summarize(r)
+	if err != nil {
+		fmt.Fprintf(stderr, "runlog-stats: %v\n", err)
+		return 1
+	}
+
+	runlogstats.Render(stdout, summary)
+
+	if summary.LinesSkipped > 0 {
+		fmt.Fprintf(stderr, "runlog-stats: skipped %d unparsable line(s)\n", summary.LinesSkipped)
+	}
+
+	return 0
+}

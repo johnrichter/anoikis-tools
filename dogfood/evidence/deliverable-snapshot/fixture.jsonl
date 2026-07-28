@@ -1,0 +1,9 @@
+{"node_id":"node-a","event":"dispatched","role":"builder","usage":{"known":true,"cost_usd":0.12}}
+{"node_id":"node-a","event":"complete","role":"builder","usage":{"known":true,"cost_usd":0.34}}
+{"node_id":"node-a","event":"failed","role":"builder","usage":{"known":false}}
+{"node_id":"node-b","event":"dispatched","role":"tester"}
+{"node_id":"node-b","event":"complete","role":"tester","usage":{"known":true}}
+{"node_id":"node-b","event":"merged","usage":{"known":false}}
+{"node_id":"node-a","event":"grafted","role":"builder","usage":{"known":false}}
+this is not json
+{"event":"dispatched","role":"builder"}

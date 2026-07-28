@@ -1,0 +1,47 @@
+{
+  "node_id": "cli-core",
+  "stage": "test",
+  "commit": "e6ed757",
+  "branch": "runlog-stats/cli-core-l0",
+  "status": "fail",
+  "counts": {
+    "unit_tests_run": 22,
+    "unit_tests_passed": 22,
+    "unit_tests_failed": 0,
+    "acceptance_criteria_total": 10,
+    "acceptance_criteria_met": 9,
+    "acceptance_criteria_failed": 1
+  },
+  "checks": [
+    {"criterion": "go build/vet clean, stdlib-only go.mod, go 1.23, no network", "result": "pass"},
+    {"criterion": "go test ./... covers all required cases (5 events incl. grafted, no-role, no-usage, known=false, known=true+cost, known=true-no-cost, malformed line, missing field, empty input, >64KiB line)", "result": "pass"},
+    {"criterion": "per-node_id and per-role sections with dispatched/complete/failed/merged counts", "result": "pass"},
+    {"criterion": "fixture cost total 0.4600 and unpriced count matches fixture", "result": "pass"},
+    {"criterion": "only known==true && cost_usd present contributes to total; other two unpriced shapes leave total byte-identical", "result": "pass"},
+    {"criterion": "determinism: byte-identical stdout across runs, ascending sort", "result": "pass"},
+    {"criterion": "accounting block reconciles lines_read = events_counted + lines_skipped, grafted/unrecognized reported", "result": "pass"},
+    {
+      "criterion": "exit status non-zero with stderr message when input could not be read at all",
+      "result": "fail",
+      "diagnostics": [
+        {
+          "file": "main.go",
+          "line": 35,
+          "severity": "high",
+          "message": "run() calls runlogstats.Summarize(r) and unconditionally treats scanner.Scan() returning false as end-of-input; it never checks bufio.Scanner.Err() (returned nowhere from Summarize). A path that os.Open succeeds on but subsequently fails to read (e.g. a directory, EISDIR; or any other read(2) error mid-stream) is silently treated as an empty, fully-read input: LinesRead=0, no stderr message, and exit code 0 with a printed summary block. This violates the acceptance criterion 'Exit status is 0 whenever a summary was printed, non-zero with a stderr message when the input could not be read at all' -- here the input genuinely could not be read, yet the tool reports success."
+        }
+      ],
+      "reproduction": "mkdir -p /tmp/dirprobe && go build -o /tmp/runlog-stats . && /tmp/runlog-stats /tmp/dirprobe; echo EXIT=$?",
+      "actual_output": "=== Per-node_id ===\nnode_id                  dispatched   complete     failed     merged\n\n=== Per-role ===\nrole                     dispatched   complete     failed     merged\n\n=== Cost ===\nTotal cost (USD, known-and-priced events only): 0.0000\nUnpriced events (no usage, known=false, or known=true without cost_usd): 0\n\n=== Accounting ===\nLines read: 0\nEvents counted: 0\nLines skipped: 0\nLines read = Events counted + Lines skipped (0 = 0 + 0)\nEvents counted = dispatched + complete + failed + merged + grafted + unrecognized_event (0 = 0 + 0 + 0 + 0 + 0 + 0)\nEXIT=0",
+      "expected": "Non-zero exit code and a stderr message reporting the read failure; no stdout summary printed (consistent with how the missing-file case is already handled).",
+      "test_coverage_gap": "main_test.go's TestRun_UnreadablePathIsFatal only exercises a non-existent path (os.Open failure). No test exercises a path that opens successfully but fails during read (directory, permission-revoked-after-open, device error, etc.), so this defect was not caught by the existing suite."
+    }
+  ],
+  "other_checks": {
+    "gofmt": "clean (no files listed)",
+    "vendor_dir_present": false,
+    "go_sum_present": false,
+    "resource_surface": "confined to *.go at repo root, internal/, testdata/ -- no violations",
+    "determinism_verified": "two independent runs against testdata/fixture.jsonl produced byte-identical stdout"
+  }
+}
