@@ -98,6 +98,18 @@ func (l Layout) Findings() string { return filepath.Join(l.Dir(), "findings.json
 // FindingsMirror is the register's generated Markdown view.
 func (l Layout) FindingsMirror() string { return filepath.Join(l.Dir(), "findings.md") }
 
+// reviewsDir holds every review's own findings artifact, kept in its own
+// subdirectory so a review's one-shot output and the effort's durable
+// register can never resolve to the same path.
+func (l Layout) reviewsDir() string { return filepath.Join(l.Dir(), "reviews") }
+
+// ReviewFindings is one review's findings artifact: the fix-verdict record
+// anoikis-reviewer writes and graft --findings consumes, keyed by the node
+// or gate under review so two reviews in flight never collide.
+func (l Layout) ReviewFindings(reviewID string) string {
+	return filepath.Join(l.reviewsDir(), FileKey(reviewID)+".json")
+}
+
 // ResultDir holds one durable run result per node.
 func (l Layout) ResultDir() string { return filepath.Join(l.Dir(), "results") }
 

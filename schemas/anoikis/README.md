@@ -17,10 +17,12 @@ These files are the canonical bytes. They are also embedded in the binary, so a 
 | `run-log-event.schema.json` | `run-log.jsonl` | One line: a single state transition, append-only. |
 | `run-result.schema.json` | `results/<id>.json` | What one node's run produced, durably. |
 | `boundary-manifest.schema.json` | a dispatch return | The bounded shape every dispatched agent's return is held to. Enforced at runtime by `boundary.Validate`'s own decode, not by compiling this file — canonical here so a roster brief's `output_schema` reference has exactly one file to resolve against. |
+| `findings-register.schema.json` | `findings.json` (`Layout.Findings`) | The effort's ranked findings register, exactly as `go/ledger` already reads and writes it. The version field is `schema` (`ledger@1.0.0`), not `schema_version` — the ledger library's own tag, kept faithful to what is already on disk rather than redefined here. |
+| `review-findings.schema.json` | a review's findings artifact (`Layout.ReviewFindings`, `.anoikis/<effort>/reviews/<review-id>.json`) | One entry per finding an `anoikis-reviewer` fix verdict raises, scored on exactly what the engine's blocking threshold reads. Never the same path as `findings.json` — the two contracts must not share a directory convention, or a reviewer's output can again land on the register's path. |
 
 ## Conventions these contracts share
 
-- **A version on every top object.** `schema_version` is semver. A file declaring a MAJOR this engine does not read is refused rather than reinterpreted.
+- **A version on every top object.** `schema_version` is semver. A file declaring a MAJOR this engine does not read is refused rather than reinterpreted. `findings-register.schema.json` is the one exception: its version field is `schema`, owned by `go/ledger`, and it is documented rather than newly designed here.
 - **Closed vocabularies.** Statuses, events, verification tiers and deliverable kinds are enumerations. Adding or removing a member is a MAJOR change, because a consumer branches exhaustively over them.
 - **No undeclared members.** Every object sets `additionalProperties: false`, so a typo is a validation error rather than a silently ignored field.
 - **One fact, one home.** A node's gate is the shard it lives in; gate policy carries no membership list. Signing policy lives on the manifest; a gate only inherits it. Spend is stored where it was measured and rolled up from there.

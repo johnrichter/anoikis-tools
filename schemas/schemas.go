@@ -51,6 +51,8 @@ const (
 	RunLogEvent      Artifact = "run-log-event"
 	RunResult        Artifact = "run-result"
 	BoundaryManifest Artifact = "boundary-manifest"
+	FindingsRegister Artifact = "findings-register"
+	ReviewFindings   Artifact = "review-findings"
 )
 
 // All returns every owned artifact, sorted, so a completeness check can

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.anoikis.dev/anoikis/findings-register.schema.json",
+  "title": "Anoikis findings register",
+  "description": "The effort's ranked feedback register, at Layout.Findings() (findings.json). This is the on-disk shape ai-shared-lib's go/ledger package already reads and writes (schema \"ledger@1.0.0\") — internal/findings is a thin composition over it, so this contract documents that shape rather than defining a new one. The version tag lives on the field named schema, not schema_version, because it is the ledger library's own tag and this file stays faithful to bytes already on disk; a document declaring any other value is refused rather than read with guessed semantics. Never confuse this with review-findings.schema.json: that is a review's one-shot output, this is the engine's durable state, and the two must never share a path.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "entries"],
+  "properties": {
+    "schema": { "type": "string", "pattern": "^ledger@[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "entries": { "type": "array", "items": { "$ref": "#/$defs/entry" } }
+  },
+  "$defs": {
+    "citation": {
+      "description": "The evidence behind a resolution: a located line, a released tag, a task id — or, on an unresolved entry, the zero value.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": { "enum": ["", "path:line", "release-tag", "task-id"] },
+        "value": { "type": "string" }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "statement", "impact", "urgency", "criticality", "added",
+        "resolution", "citation", "retraction", "recurrence", "recur_cycles"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^ENTRY-[0-9]{4,}$" },
+        "statement": { "type": "string", "minLength": 1 },
+        "impact": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "urgency": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "criticality": { "type": "integer", "minimum": 1, "maximum": 25 },
+        "added": { "type": "string", "format": "date-time" },
+        "resolution": { "enum": ["", "closed", "fixed-live", "carried", "retracted", "stopgap"] },
+        "citation": { "$ref": "#/$defs/citation" },
+        "retraction": {
+          "description": "Populated only once resolution is retracted; the zero value otherwise.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["refuting_evidence", "superseded_entry_id"],
+          "properties": {
+            "refuting_evidence": { "$ref": "#/$defs/citation" },
+            "superseded_entry_id": { "type": "string" }
+          }
+        },
+        "recurrence": { "type": "integer", "minimum": 0 },
+        "recur_cycles": { "type": ["array", "null"], "items": { "type": "string", "minLength": 1 } }
+      }
+    }
+  }
+}
