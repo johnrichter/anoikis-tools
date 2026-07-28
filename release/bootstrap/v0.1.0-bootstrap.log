@@ -1,0 +1,39 @@
+# anoikis-tools v0.1.0 bootstrap log
+
+Task: M5.P2.T1 — local, unpublished materialization of the release archives ahead of merge.
+
+## Ready check
+
+gofmt -l .        OK (no output)
+go vet ./...      OK
+go build ./...    OK
+go test ./...     OK (all packages)
+release/guard/no-committed-binaries.sh .   OK
+release/guard/tag-prefix.sh v0.1.0         OK
+
+## Archives built (dist/, cross-compiled, CGO_ENABLED=0, -trimpath -ldflags='-s -w')
+
+anoikis_0.1.0_linux_amd64.tar.gz
+anoikis_0.1.0_linux_arm64.tar.gz
+anoikis_0.1.0_darwin_amd64.tar.gz
+anoikis_0.1.0_darwin_arm64.tar.gz
+dist/checksums.txt (sha256, sha256sum -c: all 4 OK)
+
+linux_amd64 archive contents verified: single ELF executable named `anoikis`, runs
+(`anoikis --help` prints the CLI's usage banner).
+
+## Plugin provisioner exercised against these archives (file://, PF_ARCH_OVERRIDE=linux/amd64)
+
+plugin/hooks/download-script.sh resolved, downloaded, checksum-verified and cached the
+linux/amd64 archive from a scratch file:// mirror of this dist/ output; the resolved
+binary ran and printed the CLI's usage banner. Scratch dirs were temp-only, never under
+this repo.
+
+## Not done here (deferred to post-merge orchestration)
+
+No git tag: v0.1.0 must name the commit this release ships, which does not exist until
+this task's deliverable is committed and merged. release/bootstrap/README.md documents
+the exact tag command to run once that commit exists.
+
+No publish: no `gh release create`, no push. dist/ is git-ignored build output, per
+SC-DISTRIBUTION never committed.
