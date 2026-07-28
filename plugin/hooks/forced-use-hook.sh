@@ -5,12 +5,6 @@
 # BuildRegistry reads for adoption measurement, so the live decision and the
 # measured decision can never drift apart).
 #
-# This copy carries a fix not yet present in ai-shared-lib/plugin-foundation's
-# canonical file (raw_matches' prefix-scan loop must not reuse the op-scan
-# loop's counter var below, or a no-match prefix scan clobbers it and hangs
-# every later operation). Diff against the canonical before assuming the two
-# have converged, and drop this paragraph once they have.
-#
 # Reads the PreToolUse payload on stdin and decides, per governed operation
 # whose raw route names this invocation's tool:
 #   raw usage, CLI available    -> deny, redirecting to the CLI (never
@@ -72,17 +66,22 @@ matches_prefix() {
 
 # raw_matches TOOL_NAME COMMAND OP_RAW_JSON -- true iff this invocation is a
 # raw usage this operation's CLI supersedes.
+#
+# POSIX sh functions have no locals, so this scan's loop counter is named
+# distinctly from the caller's (rm_i, not i): the outer operations loop below
+# also counts with `i`, and a shared name here would have the caller's index
+# reset every time this scan finds no match, looping the caller forever.
 raw_matches() {
   raw_tool="$(printf '%s' "$3" | jq -r '.tool_name')"
   [ "${raw_tool}" = "$1" ] || return 1
   [ "${raw_tool}" = "Bash" ] || return 0
   prefix_count="$(printf '%s' "$3" | jq -r '.command_prefixes // [] | length')"
   [ "${prefix_count}" -eq 0 ] && return 0
-  pfx_i=0
-  while [ "${pfx_i}" -lt "${prefix_count}" ]; do
-    p="$(printf '%s' "$3" | jq -r --argjson i "${pfx_i}" '.command_prefixes[$i]')"
+  rm_i=0
+  while [ "${rm_i}" -lt "${prefix_count}" ]; do
+    p="$(printf '%s' "$3" | jq -r --argjson i "${rm_i}" '.command_prefixes[$i]')"
     matches_prefix "$2" "${p}" && return 0
-    pfx_i=$((pfx_i + 1))
+    rm_i=$((rm_i + 1))
   done
   return 1
 }
