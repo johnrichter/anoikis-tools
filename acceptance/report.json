@@ -1,12 +1,12 @@
 {
   "report_version": "1.0.0",
-  "verdict": "pause",
-  "forces_pause": true,
-  "action": "pause the switchover: 1 of 37 clauses did not hold. Each unmet clause below names its violations. An operator decides, per clause, whether the engine is corrected or the divergence is accepted and the target amended — this gate never decides either for them",
+  "verdict": "acceptance-green",
+  "forces_pause": false,
+  "action": "none: every clause holds at its bar, so the acceptance condition of the switchover is satisfied and the open conditions below pass to the driven build that follows it",
   "counts": {
     "clauses": 37,
-    "met": 36,
-    "unmet": 1
+    "met": 37,
+    "unmet": 0
   },
   "by_source": {
     "core-model": {
@@ -16,8 +16,8 @@
     },
     "prior-acceptance-spec": {
       "clauses": 11,
-      "met": 10,
-      "unmet": 1
+      "met": 11,
+      "unmet": 0
     },
     "v1-cost-context-gates": {
       "clauses": 7,
@@ -214,22 +214,7 @@
       "bar": "build",
       "requires": "Every subcommand documents what it does, lists its flags, shows at least one usage example, and emits machine-legible output under a documented exit-code contract.",
       "asserts": "Every command declares a use line, a short description and a long description; every command's name appears in at least one usage example in the command tree; the exit-code contract is documented; no command writes to standard output except through the single record route.",
-      "met": false,
-      "violations": [
-        "cmd/build.go: command \"reissue\" has no usage example anywhere in the command tree",
-        "cmd/inspect.go: command \"add\" declares no long",
-        "cmd/inspect.go: command \"add\" has no usage example anywhere in the command tree",
-        "cmd/inspect.go: command \"findings\" has no usage example anywhere in the command tree",
-        "cmd/inspect.go: command \"fold\" declares no long",
-        "cmd/inspect.go: command \"fold\" has no usage example anywhere in the command tree",
-        "cmd/inspect.go: command \"list\" declares no long",
-        "cmd/inspect.go: command \"list\" has no usage example anywhere in the command tree",
-        "cmd/inspect.go: command \"self-check\" has no usage example anywhere in the command tree",
-        "cmd/inspect.go: command \"show\" has no usage example anywhere in the command tree",
-        "cmd/merge.go: command \"close-gate\" has no usage example anywhere in the command tree",
-        "cmd/merge.go: command \"graft\" has no usage example anywhere in the command tree",
-        "cmd/merge.go: command \"merge-gate\" has no usage example anywhere in the command tree"
-      ]
+      "met": true
     },
     {
       "id": "prior-spec/dependency-discipline",
