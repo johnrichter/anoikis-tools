@@ -154,8 +154,12 @@ carried and returns the carryover lines the manifest keeps.`,
 	add := &cobra.Command{
 		Use:   "add",
 		Short: "Record a finding",
-		Args:  cobra.NoArgs,
-		RunE:  runFindingsAdd,
+		Long: `add appends one observation to the register and derives its criticality from
+the impact and urgency given, never from a value supplied directly. The
+returned criticality is compared against the harness policy's blocking
+threshold so the caller learns immediately whether this finding blocks.`,
+		Args: cobra.NoArgs,
+		RunE: runFindingsAdd,
 	}
 	add.Flags().String("statement", "", "what was observed")
 	add.Flags().Int("impact", 0, "how much it matters, 1-5")
@@ -164,15 +168,22 @@ carried and returns the carryover lines the manifest keeps.`,
 	list := &cobra.Command{
 		Use:   "list",
 		Short: "List findings, criticality-ranked and split at the blocking threshold",
-		Args:  cobra.NoArgs,
-		RunE:  runFindingsList,
+		Long: `list reads the whole register and reports it already split into blocking and
+deferred sets against the harness policy's threshold, plus the total count, so
+a driver never has to re-derive the split itself.`,
+		Args: cobra.NoArgs,
+		RunE: runFindingsList,
 	}
 
 	fold := &cobra.Command{
 		Use:   "fold",
 		Short: "Carry every deferred finding into the manifest's carryover and close the version",
-		Args:  cobra.NoArgs,
-		RunE:  runFindingsFold,
+		Long: `fold closes out a version's register: every finding still deferred is
+resolved as carried, its carryover line is appended to the project manifest,
+and the fold is recorded in provenance so a later read can see which findings
+crossed a version boundary rather than being acted on.`,
+		Args: cobra.NoArgs,
+		RunE: runFindingsFold,
 	}
 
 	group.AddCommand(add, list, fold)
