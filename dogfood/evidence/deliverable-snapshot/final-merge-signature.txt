@@ -1,0 +1,7 @@
+commit ff26a9decb75b202a12dfdf8ae992ac3a1c05556
+Good "git" signature for john@jrichter.io with ED25519 key SHA256:kf/jX5+k+3LzV2OkM1obGMVSAqbnKKOvoYpd2ekzN4g
+Merge: 635221c 70feb9b
+Author: Anoikis Dogfood Driver <dogfood@anoikis.local>
+Date:   Tue Jul 28 14:35:46 2026 +0000
+
+    Operator confirms: anoikis dogfood effort runlog-stats, gate cli-and-docs (cli-core + usage-docs, both reviewed and passed) merges onto main.

@@ -1,0 +1,353 @@
+{
+  "report_version": "1.0.0",
+  "verdict": "acceptance-green",
+  "forces_pause": false,
+  "action": "none: every clause holds at its bar, so the acceptance condition of the switchover is satisfied and the open conditions below pass to the driven build that follows it",
+  "counts": {
+    "clauses": 37,
+    "met": 37,
+    "unmet": 0
+  },
+  "by_source": {
+    "core-model": {
+      "clauses": 19,
+      "met": 19,
+      "unmet": 0
+    },
+    "prior-acceptance-spec": {
+      "clauses": 11,
+      "met": 11,
+      "unmet": 0
+    },
+    "v1-cost-context-gates": {
+      "clauses": 7,
+      "met": 7,
+      "unmet": 0
+    }
+  },
+  "open_conditions": [
+    {
+      "clause": "v1/compaction-can-be-attributed",
+      "measurement": "the compaction record itself — including the tokens held at the moment of compaction — which the driving harness captures with its own compaction hook. That hook is harness surface, not engine surface, and this engine ships none."
+    },
+    {
+      "clause": "v1/directive-size-is-flat-in-completed-work",
+      "measurement": "the per-turn cache-write trend against completed-node count over a real driven build."
+    },
+    {
+      "clause": "v1/governed-operations-route-through-the-engine",
+      "measurement": "the live share of tool calls that go through the engine rather than raw shell, over a real driven build."
+    },
+    {
+      "clause": "v1/orchestrator-holds-pointers-only",
+      "measurement": "the number of forced compactions over a real driven build, counted by the driving harness itself."
+    },
+    {
+      "clause": "v1/returns-are-bounded-pointers",
+      "measurement": "that every return a real driven build actually produces is at or below that figure. The wider class — a report that its artifact is written, with the paths — is permitted a ceiling above it, so the mechanism bounds returns without enforcing the figure itself."
+    }
+  ],
+  "clauses": [
+    {
+      "id": "core-model/admission-proves-disjointness",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "Two nodes share a batch only when the dependency graph proves them independent and their declared surfaces are proven disjoint; anything unproven runs alone.",
+      "asserts": "Nodes with disjoint claims are admitted together; nodes claiming the same directory are not; a node claiming nothing is admitted alone, and each exclusion is reported with the reason it was held back.",
+      "met": true
+    },
+    {
+      "id": "core-model/archived-node-leaves-a-tombstone",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "A closed node's detail moves to the archive by rename and leaves a tombstone in its shard, so a later node's archived dependency still resolves.",
+      "asserts": "Archiving moves the detail record out of the hot path and it stays readable; retiring a node leaves it archived with a tombstone in the shard; a live node depending on it is ready.",
+      "met": true
+    },
+    {
+      "id": "core-model/done-means-merged",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "A node is done only once its work is merged onto the build branch, so a later node branches from a base containing its dependencies' work.",
+      "asserts": "Recording a passing run leaves the node unsettled and merely mergeable; only settling the merge marks it done and journals a merged transition; a node whose dependency is unmerged is not ready.",
+      "met": true
+    },
+    {
+      "id": "core-model/driver-composes-no-version-control",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "Every command a directive emits is an invocation of this engine, never a version-control command the driver assembles itself.",
+      "asserts": "Every command emitted across every fixture state names this engine as its program; the version-control binary is executed from exactly one package.",
+      "met": true
+    },
+    {
+      "id": "core-model/findings-split-blocking-from-deferred",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "A finding severe enough to block halts the build; anything less is deferred and carried forward, and nothing judges which is which at build time.",
+      "asserts": "An open finding at or above the harness's threshold halts the build and names the finding; one below it does not; the threshold comes from the injected policy.",
+      "met": true
+    },
+    {
+      "id": "core-model/halt-causes-are-a-closed-set",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "A pause or halt names its cause from a closed vocabulary covering every condition the model enumerates, so a driver branches on the cause rather than parsing prose.",
+      "asserts": "Every fixture pause or halt carries a cause and a reason; a dependency cycle, the spend ceiling, an unready plan and a blockage each yield the cause that names them; the two merge-time causes, a surface overlap and a failed backstop, are raised somewhere and not merely declared.",
+      "met": true
+    },
+    {
+      "id": "core-model/one-exclusion-constant",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "One constant names every uncommitted class of effort file, and every enumerator that must agree about it reads that constant.",
+      "asserts": "Every ephemeral directory the constant names is ignored by the repository's ignore file and is created when an effort is created; no committed artifact path falls inside one.",
+      "met": true
+    },
+    {
+      "id": "core-model/one-home-per-fact",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "Gate membership lives on the shard a node is in; gate policy carries no member list; the signing policy lives only on the manifest.",
+      "asserts": "The gate contract declares no member list; the shard contract carries the gate identity; the signing policy appears in the manifest contract only, and a gate carries nothing but whether it inherits it.",
+      "met": true
+    },
+    {
+      "id": "core-model/one-mechanical-graph-mutation",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "The only build-time change to the graph is the fix node a review's fix verdict calls for: it depends on exactly the nodes reviewed, claims the union of their surfaces, and is seeded by the review's findings.",
+      "asserts": "A planned graft depends on exactly the reviewed nodes, claims every claim they declared and nothing else, carries the findings reference as its input, and lands in the gate the reviewed nodes belong to.",
+      "met": true
+    },
+    {
+      "id": "core-model/one-next-directive",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "The driver is handed exactly one next action, drawn from a closed set of five, with the judgement already made in code.",
+      "asserts": "Every fixture state yields an action in the closed set; the five actions are each reachable; a directive never carries more than one action's payload.",
+      "met": true
+    },
+    {
+      "id": "core-model/post-merge-backstop-is-always-on",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "Every layer merge is followed by building the merged result and re-asserting that every changed path was declared; the check is not optional.",
+      "asserts": "The shipped harness declares a backstop command; a harness policy declaring none is refused when it loads; the backstop refuses to run with no command; the surface re-assertion reports a changed path no merged node declared and accepts one that a declared pattern covers.",
+      "met": true
+    },
+    {
+      "id": "core-model/results-are-durable-with-no-parallel-store",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "A run's durable record carries its structured diagnostics and the failing excerpt, because the raw log dies with the worktree; there is no second store for errors.",
+      "asserts": "The run-result contract carries structured diagnostics, an overflow count and an excerpt; the effort layout declares no separate error store; the raw log directory is ephemeral while results are not.",
+      "met": true
+    },
+    {
+      "id": "core-model/resume-reads-the-tail",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "A resume reads the run log from the cursor onward, never the whole history.",
+      "asserts": "A scan from a saved cursor returns only the events after it and reports the offset past the last well-formed one; the cursor round-trips through its own store.",
+      "met": true
+    },
+    {
+      "id": "core-model/review-is-selected-by-tier-not-staged",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "Review is chosen solely by a node's verification tier and is never also a stage; a review role never authors artifacts.",
+      "asserts": "The node contract requires a verification tier from the closed set; no stage in the shipped harness policy is a review stage; a policy naming a builder as its review role is refused.",
+      "met": true
+    },
+    {
+      "id": "core-model/run-log-is-append-only-and-atomic",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "The run log is append-only, one line per transition, each line small enough to land in a single atomic append, with one writer.",
+      "asserts": "The line bound is at most the single-append size; an event that would exceed it is refused rather than truncated; appending never rewrites what is already there; a line damaged by a kill is skipped as damage rather than read as an event.",
+      "met": true
+    },
+    {
+      "id": "core-model/spend-is-priced-never-self-reported",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "What a run cost comes from a spend provider, never from the run: a run reports only where it executed. An unpriced run is unknown with a reason, never zero, and a total holding one says so.",
+      "asserts": "The run-result contract carries attribution and no cost or token field; a provider with no source answers unknown with a reason; folding an unknown into a total makes the total unknown; an effort holding an unpriced run reports its spend as a floor; all four token classes are carried.",
+      "met": true
+    },
+    {
+      "id": "core-model/surface-claims-are-typed-and-checked-both-ways",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "A surface claim is typed, and the same dialect decides both the disjointness proof made before a run and the re-assertion made against what the merge landed.",
+      "asserts": "The claim contract carries a domain, a kind and a value, and the shipped harness registers the domain that decides them; the post-merge re-assertion accepts a path covered by a declared directory, file or recursive pattern, reports one no node declared, and treats an untyped claim as covering nothing.",
+      "met": true
+    },
+    {
+      "id": "core-model/two-merges-kept-apart",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "A layer merge is autonomous and unsigned; the merge onto the declared main branch is the only one that re-signs every commit, signs the merge commit and requires an operator-approved message.",
+      "asserts": "A gate targeting the harness's main branch is marked as such and its emitted merge asks for an operator confirmation; a gate targeting any other branch is not and does not; the gate merge refuses a main-branch plan carrying no approved message, and one carrying no explicit re-signing range, before it touches the repository.",
+      "met": true
+    },
+    {
+      "id": "core-model/undispatchable-nodes-are-refused",
+      "source": "core-model",
+      "bar": "build",
+      "requires": "A node marked as never dispatched is structurally refused to a subagent; it is work the engine performs itself.",
+      "asserts": "Such a node is never returned as ready and never admitted to a batch, even with every dependency settled.",
+      "met": true
+    },
+    {
+      "id": "prior-spec/artifact-contracts",
+      "source": "prior-acceptance-spec",
+      "bar": "build",
+      "requires": "Every on-disk artifact conforms to a single canonical contract carrying a semantic-versioned schema version, and the contract files are the one source for each shape.",
+      "asserts": "Every artifact the effort store reads or writes resolves to a canonical contract file that requires a schema_version constrained to a semantic version; every contract file has an exported constant and every constant has a file.",
+      "met": true
+    },
+    {
+      "id": "prior-spec/command-contract",
+      "source": "prior-acceptance-spec",
+      "bar": "build",
+      "requires": "Every subcommand documents what it does, lists its flags, shows at least one usage example, and emits machine-legible output under a documented exit-code contract.",
+      "asserts": "Every command declares a use line, a short description and a long description; every command's name appears in at least one usage example in the command tree; the exit-code contract is documented; no command writes to standard output except through the single record route.",
+      "met": true
+    },
+    {
+      "id": "prior-spec/dependency-discipline",
+      "source": "prior-acceptance-spec",
+      "bar": "build",
+      "requires": "Every third-party capability comes from a pinned, declared dependency; nothing is imported that the module does not require.",
+      "asserts": "Every module requirement carries an explicit version; every placeholder-versioned sibling library is resolved by a replace directive; every non-standard-library import in non-test source belongs to a required module.",
+      "met": true
+    },
+    {
+      "id": "prior-spec/deterministic-decisions",
+      "source": "prior-acceptance-spec",
+      "bar": "build",
+      "requires": "The scheduling decisions are pure and deterministic: identical state yields an identical directive, so a build is repeatable.",
+      "asserts": "Over every fixture state, two evaluations of the same state — and an evaluation of a separately constructed but equal state — produce byte-identical directives.",
+      "met": true
+    },
+    {
+      "id": "prior-spec/documentation-bar",
+      "source": "prior-acceptance-spec",
+      "bar": "build",
+      "requires": "Every documentation deliverable is accurate, with every link resolving and no placeholder left in it.",
+      "asserts": "Every relative link in every Markdown file in the tree resolves to a file or directory that exists; no Markdown file carries an unfinished-work marker.",
+      "met": true
+    },
+    {
+      "id": "prior-spec/kill-safe-resume",
+      "source": "prior-acceptance-spec",
+      "bar": "build",
+      "requires": "A graceful stop loses no work and a hard kill loses only the work in flight: a resume replays every unfinished run verbatim from what was journalled before it started.",
+      "asserts": "A run whose latest event is a dispatch is reissued, carrying the stored prompt, its digest and the commit its worktree is reset to; a run that finished unmerged is recorded again; a merged run is skipped; a damaged final log line is carried as a caveat rather than failing the resume.",
+      "met": true
+    },
+    {
+      "id": "prior-spec/owes-nothing-to-the-prior-harness",
+      "source": "prior-acceptance-spec",
+      "bar": "build",
+      "requires": "The harness this engine replaces is untouched by it: nothing here imports it, names it, reads its artifact contracts or bakes in its identifier grammar.",
+      "asserts": "The decoupling guard declares a non-empty vocabulary for each of imports, names and artifact contracts and holds a test for each; re-applying that same vocabulary across every Go and JSON file in the tree, outside the guard itself, finds no match.",
+      "met": true
+    },
+    {
+      "id": "prior-spec/plugin-registers-additively",
+      "source": "prior-acceptance-spec",
+      "bar": "build",
+      "requires": "This engine's plugin is additive: it is well-formed, self-contained, and changes nothing that already exists.",
+      "asserts": "The plugin manifest parses and declares a name, a description and a semantic version; every hook command resolves inside the plugin root to a file that exists in the tree; no hook path escapes the plugin root.",
+      "met": true
+    },
+    {
+      "id": "prior-spec/production-bar",
+      "source": "prior-acceptance-spec",
+      "bar": "build",
+      "requires": "Every code deliverable is production-ready: formatted, documented at every exported symbol and package, and free of unfinished-work markers.",
+      "asserts": "Every Go file in the tree is byte-identical to its formatted form; every package carries a package comment; every exported type, function, constant, variable and method on an exported type carries a doc comment, except methods whose contract comes from the interface they implement; no Go source carries an unfinished-work marker.",
+      "met": true
+    },
+    {
+      "id": "prior-spec/shared-libraries-are-imported-not-copied",
+      "source": "prior-acceptance-spec",
+      "bar": "build",
+      "requires": "Reusable logic lives once, in the shared libraries, and is imported at a pinned version — never forked into this repository.",
+      "asserts": "At least one shared library is required; every shared-library requirement resolves to a sibling checkout outside this tree; the tree holds no vendored dependency directory, no second module, and no file declaring itself part of the shared namespace.",
+      "met": true
+    },
+    {
+      "id": "prior-spec/toolchain-gates",
+      "source": "prior-acceptance-spec",
+      "bar": "build",
+      "requires": "The toolchain gates run in continuous integration with zero warnings tolerated, the linter is version-pinned, and no built binary is committed.",
+      "asserts": "The integration workflow runs the formatter check, the vetter, the build, the tests and a linter pinned to an explicit version; the linter's configuration is committed; the no-committed-binaries guard is committed and the workflow runs it; no file in the tree is an executable image.",
+      "met": true
+    },
+    {
+      "id": "v1/compaction-can-be-attributed",
+      "source": "v1-cost-context-gates",
+      "bar": "mechanism",
+      "requires": "Every compaction is captured with the node, model, context window, tokens at compaction and gate, so the wide-window decision is later made on data.",
+      "asserts": "Every transition the engine journals carries the node, model, context window, effort and layer a compaction would be attributed by, and spend is priced out of process from the session's own transcript rather than by reading it into the driving session.",
+      "measured": "the compaction record itself — including the tokens held at the moment of compaction — which the driving harness captures with its own compaction hook. That hook is harness surface, not engine surface, and this engine ships none.",
+      "met": true
+    },
+    {
+      "id": "v1/directive-size-is-flat-in-completed-work",
+      "source": "v1-cost-context-gates",
+      "bar": "mechanism",
+      "requires": "The driving session's per-turn cache writes stay flat as completed nodes accumulate, rather than growing with them.",
+      "asserts": "The directive for the same next action is byte-identical whether the graph holds one completed node or fifty, so nothing the driver receives grows with the work already done.",
+      "measured": "the per-turn cache-write trend against completed-node count over a real driven build.",
+      "met": true
+    },
+    {
+      "id": "v1/dispatch-is-deterministic",
+      "source": "v1-cost-context-gates",
+      "bar": "build",
+      "requires": "Dispatches are deterministic: the same graph admits the same batch, in the same order, every time.",
+      "asserts": "Repeated admission over one graph yields identical members and identical deferrals, and admission order follows the graph's own insertion order rather than map iteration.",
+      "met": true
+    },
+    {
+      "id": "v1/every-node-runs-at-the-default-window",
+      "source": "v1-cost-context-gates",
+      "bar": "build",
+      "requires": "Every node in this version runs at the default context window; no node is pinned to the wide one, which is the single largest spend lever and is taken on evidence only.",
+      "asserts": "Every stage declared in the shipped harness policy runs at the default window; no declaration anywhere in the tree pins the wide window.",
+      "met": true
+    },
+    {
+      "id": "v1/governed-operations-route-through-the-engine",
+      "source": "v1-cost-context-gates",
+      "bar": "mechanism",
+      "requires": "The share of tool calls spent on raw shell drops materially, because the operations the engine supersedes are routed to it.",
+      "asserts": "The plugin declares a routing rule for every operation the engine supersedes, each naming the invocation that replaces the raw command; the adoption gate over the frozen fixtures is part of the test suite; the routing hook fails open when the engine is unavailable.",
+      "measured": "the live share of tool calls that go through the engine rather than raw shell, over a real driven build.",
+      "met": true
+    },
+    {
+      "id": "v1/orchestrator-holds-pointers-only",
+      "source": "v1-cost-context-gates",
+      "bar": "mechanism",
+      "requires": "A full build forces no compaction on the driving session.",
+      "asserts": "A directive carries node identities and never node detail: what a node is for, what would make it acceptable and what it produced are reachable only through a reference the driver resolves when it dispatches.",
+      "measured": "the number of forced compactions over a real driven build, counted by the driving harness itself.",
+      "met": true
+    },
+    {
+      "id": "v1/returns-are-bounded-pointers",
+      "source": "v1-cost-context-gates",
+      "bar": "mechanism",
+      "requires": "Every return from a dispatched run is a pointer, at or below the two-kilobyte figure the gate names.",
+      "asserts": "Every return class declares a byte ceiling in one place; an over-length return is refused before it is parsed and a non-conforming one is refused as a named error, never absorbed into a degraded result; the tightest class sits at or below the figure the gate names.",
+      "measured": "that every return a real driven build actually produces is at or below that figure. The wider class — a report that its artifact is written, with the paths — is permitted a ceiling above it, so the mechanism bounds returns without enforcing the figure itself.",
+      "met": true
+    }
+  ]
+}

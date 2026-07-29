@@ -53,6 +53,15 @@ of it.
   anoikis dispatch --effort my-effort --layer 0
   anoikis record --effort my-effort --results outcomes.json
   anoikis resume --effort my-effort
+  anoikis reissue --effort my-effort
+  anoikis show --effort my-effort --level outline
+  anoikis findings add --effort my-effort --statement "flaky retry" --impact 3 --urgency 2
+  anoikis findings list --effort my-effort
+  anoikis findings fold --effort my-effort
+  anoikis self-check --effort my-effort --transcript session.jsonl
+  anoikis merge-gate --effort my-effort --gate g1
+  anoikis close-gate --effort my-effort --gate g1 --verdict pass
+  anoikis graft --effort my-effort --reviewed node-1 --findings findings/f1.json
 `, "\n"),
 		SilenceUsage:  true,
 		SilenceErrors: true,

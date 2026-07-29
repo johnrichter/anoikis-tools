@@ -1,0 +1,8 @@
+{
+    "name": "anoikis",
+    "description": "Forces Claude toward anoikis (readiness, batching, layer merge, gate merge and state-inspection decisions for a work graph) instead of the raw git/Bash calls and direct effort-state reads it supersedes; provisions the binary on session start.",
+    "author": {
+        "name": "John Richter"
+    },
+    "version": "0.1.0"
+}

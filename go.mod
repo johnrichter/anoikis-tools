@@ -4,6 +4,7 @@ go 1.26
 
 require (
 	github.com/bmatcuk/doublestar/v4 v4.10.0
+	github.com/johnrichter/claude-shared-tooling/go/adoption v0.0.0
 	github.com/johnrichter/claude-shared-tooling/go/bandcheck v0.0.0
 	github.com/johnrichter/claude-shared-tooling/go/clikit v0.0.0
 	github.com/johnrichter/claude-shared-tooling/go/cost v0.0.0
@@ -20,6 +21,7 @@ require (
 	github.com/johnrichter/claude-shared-tooling/go/state v0.0.0
 	github.com/johnrichter/claude-shared-tooling/go/sysops v0.0.0
 	github.com/johnrichter/claude-shared-tooling/go/transcript v0.0.0
+	github.com/johnrichter/claude-shared-tooling/plugin-foundation v0.0.0
 	github.com/knadh/koanf/parsers/yaml v1.1.0
 	github.com/knadh/koanf/providers/confmap v1.0.0
 	github.com/knadh/koanf/providers/env v1.1.0
@@ -65,6 +67,8 @@ require (
 // requires at them. A replace directive is only honored in the MAIN module's
 // own go.mod, so the full transitive closure is replaced here, including
 // modules this CLI never imports directly.
+replace github.com/johnrichter/claude-shared-tooling/go/adoption => ../ai-shared-lib/go/adoption
+
 replace github.com/johnrichter/claude-shared-tooling/go/bandcheck => ../ai-shared-lib/go/bandcheck
 
 replace github.com/johnrichter/claude-shared-tooling/go/clikit => ../ai-shared-lib/go/clikit
@@ -100,3 +104,5 @@ replace github.com/johnrichter/claude-shared-tooling/go/sysops => ../ai-shared-l
 replace github.com/johnrichter/claude-shared-tooling/go/toolchain => ../ai-shared-lib/go/toolchain
 
 replace github.com/johnrichter/claude-shared-tooling/go/transcript => ../ai-shared-lib/go/transcript
+
+replace github.com/johnrichter/claude-shared-tooling/plugin-foundation => ../ai-shared-lib/plugin-foundation

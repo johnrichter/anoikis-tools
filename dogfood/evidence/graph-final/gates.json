@@ -1,0 +1,1 @@
+{"gates":[{"id":"cli-and-docs","name":"CLI and its usage doc reviewed together","policy":{"deep_review":"batched","merge_target":"main","pause":true,"sign":"inherit"},"status":"merged"}],"schema_version":"1.0.0"}

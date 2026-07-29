@@ -203,6 +203,31 @@ func allSettled(nodes []Node) bool {
 	return true
 }
 
+// foldStatus is the status FoldLog assigns a node for each event that moves
+// it. Every other member of the event enum is a documented no-op in
+// foldNoOps; together the two must cover AllEvents exactly, so a member
+// added to the enum without a folding decision is caught rather than folding
+// as a silent no-op.
+var foldStatus = map[Event]Status{
+	EventDispatched: StatusRunning,
+	EventFailed:     StatusFailed,
+	EventMerged:     StatusDone,
+}
+
+// foldNoOps are the event enum members FoldLog deliberately does not fold,
+// with the reason each is safe to leave out of foldStatus.
+var foldNoOps = map[Event]string{
+	// A pass is recorded as complete but stays unmerged until the layer's
+	// merge lands; the model represents that as running, the status the
+	// node's own dispatched event already folded to. See engine.Apply.
+	EventComplete: "complete-but-unmerged is represented as running, already folded from the node's dispatch",
+	// Grafted records the insertion of a fix node, not a transition of an
+	// existing one: the node it names is written into its shard with its
+	// starting status by the graft that inserts it, and the log entry beside
+	// it is provenance, not a fold input.
+	EventGrafted: "records a graph mutation, not a status transition; the grafted node's status is written to its shard directly",
+}
+
 // FoldLog applies the log tail's transitions to the shards' status fields and
 // returns the reconciled state.
 //
@@ -210,20 +235,17 @@ func allSettled(nodes []Node) bool {
 // scheduling. A process killed between journalling a transition and rewriting
 // the shard leaves the two disagreeing, and only one of them is append-only —
 // so the log wins. Folding it on load is what makes that window survivable: a
-// node the log says was dispatched is running, and one it says was merged is
-// done, whatever its shard still says. A node already settled is left alone,
-// since nothing in the log can undo a merge.
+// node the log says was dispatched is running, one it says failed is failed,
+// and one it says was merged is done, whatever its shard still says. A node
+// already settled is left alone, since nothing in the log can undo a merge.
 func (s State) FoldLog() State {
 	if len(s.Events) == 0 {
 		return s
 	}
 	status := map[string]Status{}
 	for _, e := range s.Events {
-		switch e.Event {
-		case EventDispatched:
-			status[e.NodeID] = StatusRunning
-		case EventMerged:
-			status[e.NodeID] = StatusDone
+		if folded, ok := foldStatus[e.Event]; ok {
+			status[e.NodeID] = folded
 		}
 	}
 	shards := make([]Shard, 0, len(s.Shards))

@@ -1,0 +1,68 @@
+{
+  "operations": [
+    {
+      "name": "step-advance",
+      "cli": {
+        "invocation_prefix": "anoikis step",
+        "bin_name": "anoikis",
+        "bin_env": "ANOIKIS_BIN",
+        "usage_hint": "anoikis step --effort <slug>"
+      },
+      "raw": {
+        "tool_name": "Bash",
+        "command_prefixes": ["git status", "git log"]
+      }
+    },
+    {
+      "name": "layer-dispatch",
+      "cli": {
+        "invocation_prefix": "anoikis dispatch",
+        "bin_name": "anoikis",
+        "bin_env": "ANOIKIS_BIN",
+        "usage_hint": "anoikis dispatch --effort <slug> --layer <n>"
+      },
+      "raw": {
+        "tool_name": "Bash",
+        "command_prefixes": ["git worktree add", "git checkout -b"]
+      }
+    },
+    {
+      "name": "layer-merge",
+      "cli": {
+        "invocation_prefix": "anoikis record",
+        "bin_name": "anoikis",
+        "bin_env": "ANOIKIS_BIN",
+        "usage_hint": "anoikis record --effort <slug> --results <file>"
+      },
+      "raw": {
+        "tool_name": "Bash",
+        "command_prefixes": ["git merge"]
+      }
+    },
+    {
+      "name": "gate-merge",
+      "cli": {
+        "invocation_prefix": "anoikis merge-gate",
+        "bin_name": "anoikis",
+        "bin_env": "ANOIKIS_BIN",
+        "usage_hint": "anoikis merge-gate --effort <slug> --target <branch>"
+      },
+      "raw": {
+        "tool_name": "Bash",
+        "command_prefixes": ["git push"]
+      }
+    },
+    {
+      "name": "state-inspect",
+      "cli": {
+        "invocation_prefix": "anoikis show",
+        "bin_name": "anoikis",
+        "bin_env": "ANOIKIS_BIN",
+        "usage_hint": "anoikis show --effort <slug>"
+      },
+      "raw": {
+        "tool_name": "Read"
+      }
+    }
+  ]
+}

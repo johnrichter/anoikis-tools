@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0.0",
+  "name": "dogfood-roster",
+  "id_scheme": "opaque",
+  "workflow": {
+    "stages": [
+      { "stage": "build", "role": "builder", "model": "claude-sonnet-5", "context_window": "200k", "effort": "high" },
+      { "stage": "test", "role": "tester", "model": "claude-sonnet-5", "context_window": "200k", "effort": "medium" }
+    ]
+  },
+  "roles": {
+    "builder": {
+      "agent": "anoikis-builder",
+      "brief": "Implement the node's code deliverable to its acceptance criteria, inside its dispatched worktree and branch. Stay inside the declared resource surface.",
+      "builder": true
+    },
+    "tester": {
+      "agent": "anoikis-tester",
+      "brief": "Run the node's own build/test commands and report pass or fail with structured diagnostics. Never repair the code under test.",
+      "builder": true
+    },
+    "writer": {
+      "agent": "anoikis-writer",
+      "brief": "Implement the node's docs deliverable to its acceptance criteria, inside its dispatched worktree and branch.",
+      "builder": true
+    },
+    "reviewer": {
+      "agent": "anoikis-reviewer",
+      "brief": "Judge the gate's accumulated diff against every reviewed node's acceptance criteria and return a structured pass/fix verdict. Author no artifact.",
+      "builder": false
+    }
+  },
+  "routes": {
+    "code": {
+      "stages": [
+        { "stage": "build", "role": "builder", "model": "claude-sonnet-5", "context_window": "200k", "effort": "high" },
+        { "stage": "test", "role": "tester", "model": "claude-sonnet-5", "context_window": "200k", "effort": "medium" }
+      ],
+      "review_role": "reviewer"
+    },
+    "docs": {
+      "stages": [
+        { "stage": "build", "role": "writer", "model": "claude-sonnet-5", "context_window": "200k", "effort": "medium" }
+      ],
+      "review_role": "reviewer"
+    }
+  },
+  "gates": {
+    "main_branch": "main",
+    "build_branch": "build",
+    "deep_review_modes": ["batched", "none"],
+    "verdicts": ["pass", "fix"],
+    "fix_verdict": "fix",
+    "review_role": "reviewer"
+  },
+  "surfaces": [
+    { "name": "path", "kind": "path" }
+  ],
+  "admission": { "max_group_size": 4 },
+  "backstop": {
+    "command": ["go", "build", "./..."],
+    "timeout_seconds": 300
+  },
+  "findings": { "blocking_threshold": 15 },
+  "tier": {
+    "floor_model": "claude-sonnet-5",
+    "floor_effort": "medium",
+    "ceiling_model": "claude-opus-5",
+    "ceiling_effort": "high"
+  },
+  "usage": {
+    "transcript_root": "/home/bits/.claude/projects",
+    "scope": "dogfood",
+    "index_path": ".anoikis/runlog-stats/cost-index.sqlite"
+  }
+}

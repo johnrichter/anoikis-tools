@@ -1,0 +1,287 @@
+package runlogstats
+
+import (
+	"bytes"
+	"os"
+	"strings"
+	"testing"
+)
+
+func summarizeString(t *testing.T, input string) Summary {
+	t.Helper()
+	s, err := Summarize(strings.NewReader(input))
+	if err != nil {
+		t.Fatalf("Summarize returned unexpected error: %v", err)
+	}
+	return s
+}
+
+func render(s Summary) string {
+	var buf bytes.Buffer
+	Render(&buf, s)
+	return buf.String()
+}
+
+func TestSummarize_AllFiveEventValues(t *testing.T) {
+	input := `{"node_id":"n1","event":"dispatched","role":"r1"}
+{"node_id":"n1","event":"complete","role":"r1"}
+{"node_id":"n1","event":"failed","role":"r1"}
+{"node_id":"n1","event":"merged","role":"r1"}
+{"node_id":"n1","event":"grafted","role":"r1"}
+`
+	s := summarizeString(t, input)
+
+	if s.EventsCounted != 5 || s.LinesSkipped != 0 {
+		t.Fatalf("EventsCounted=%d LinesSkipped=%d, want 5 and 0", s.EventsCounted, s.LinesSkipped)
+	}
+	c := s.NodeCounts["n1"]
+	if c == nil || c.Dispatched != 1 || c.Complete != 1 || c.Failed != 1 || c.Merged != 1 {
+		t.Fatalf("unexpected node counts: %+v", c)
+	}
+	if got := s.EventKindCounts["grafted"]; got != 1 {
+		t.Fatalf("EventKindCounts[grafted]=%d, want 1", got)
+	}
+	// grafted is not one of the four counted columns.
+	if sum := c.Dispatched + c.Complete + c.Failed + c.Merged; sum != 4 {
+		t.Fatalf("node column sum=%d, want 4 (grafted excluded)", sum)
+	}
+}
+
+func TestSummarize_UnrecognizedEventValue(t *testing.T) {
+	s := summarizeString(t, `{"node_id":"n1","event":"exploded","role":"r1"}`+"\n")
+	if s.EventsCounted != 1 {
+		t.Fatalf("EventsCounted=%d, want 1", s.EventsCounted)
+	}
+	if got := s.EventKindCounts["exploded"]; got != 1 {
+		t.Fatalf("EventKindCounts[exploded]=%d, want 1", got)
+	}
+	if _, ok := s.NodeCounts["n1"]; ok {
+		t.Fatalf("unrecognized event value should not create a node row")
+	}
+}
+
+func TestSummarize_EventWithNoRole(t *testing.T) {
+	s := summarizeString(t, `{"node_id":"n1","event":"dispatched"}`+"\n")
+	c := s.RoleCounts[noRoleLabel]
+	if c == nil || c.Dispatched != 1 {
+		t.Fatalf("expected role %q bucket with 1 dispatched, got %+v", noRoleLabel, c)
+	}
+}
+
+func TestSummarize_NoUsageObject(t *testing.T) {
+	s := summarizeString(t, `{"node_id":"n1","event":"dispatched"}`+"\n")
+	if s.TotalCost != 0 {
+		t.Fatalf("TotalCost=%v, want 0", s.TotalCost)
+	}
+	if s.UnpricedCount != 1 {
+		t.Fatalf("UnpricedCount=%d, want 1", s.UnpricedCount)
+	}
+}
+
+func TestSummarize_UsageKnownFalse(t *testing.T) {
+	s := summarizeString(t, `{"node_id":"n1","event":"dispatched","usage":{"known":false}}`+"\n")
+	if s.TotalCost != 0 {
+		t.Fatalf("TotalCost=%v, want 0", s.TotalCost)
+	}
+	if s.UnpricedCount != 1 {
+		t.Fatalf("UnpricedCount=%d, want 1", s.UnpricedCount)
+	}
+}
+
+func TestSummarize_UsageKnownTrueWithCost(t *testing.T) {
+	s := summarizeString(t, `{"node_id":"n1","event":"dispatched","usage":{"known":true,"cost_usd":0.5}}`+"\n")
+	if s.TotalCost != 0.5 {
+		t.Fatalf("TotalCost=%v, want 0.5", s.TotalCost)
+	}
+	if s.UnpricedCount != 0 {
+		t.Fatalf("UnpricedCount=%d, want 0", s.UnpricedCount)
+	}
+}
+
+func TestSummarize_UsageKnownTrueNoCost(t *testing.T) {
+	s := summarizeString(t, `{"node_id":"n1","event":"dispatched","usage":{"known":true}}`+"\n")
+	if s.TotalCost != 0 {
+		t.Fatalf("TotalCost=%v, want 0 (must not treat absent cost_usd as 0 contribution)", s.TotalCost)
+	}
+	if s.UnpricedCount != 1 {
+		t.Fatalf("UnpricedCount=%d, want 1 (known-but-unpriced must count as unpriced)", s.UnpricedCount)
+	}
+}
+
+func TestSummarize_MalformedLine(t *testing.T) {
+	s := summarizeString(t, "not json at all\n")
+	if s.LinesRead != 1 || s.EventsCounted != 0 || s.LinesSkipped != 1 {
+		t.Fatalf("LinesRead=%d EventsCounted=%d LinesSkipped=%d, want 1/0/1", s.LinesRead, s.EventsCounted, s.LinesSkipped)
+	}
+}
+
+func TestSummarize_MissingRequiredField(t *testing.T) {
+	s := summarizeString(t, `{"event":"dispatched","role":"r1"}`+"\n")
+	if s.LinesRead != 1 || s.EventsCounted != 0 || s.LinesSkipped != 1 {
+		t.Fatalf("LinesRead=%d EventsCounted=%d LinesSkipped=%d, want 1/0/1 (missing node_id)", s.LinesRead, s.EventsCounted, s.LinesSkipped)
+	}
+
+	s = summarizeString(t, `{"node_id":"n1","role":"r1"}`+"\n")
+	if s.LinesRead != 1 || s.EventsCounted != 0 || s.LinesSkipped != 1 {
+		t.Fatalf("LinesRead=%d EventsCounted=%d LinesSkipped=%d, want 1/0/1 (missing event)", s.LinesRead, s.EventsCounted, s.LinesSkipped)
+	}
+}
+
+func TestSummarize_EmptyInput(t *testing.T) {
+	s := summarizeString(t, "")
+	if s.LinesRead != 0 || s.EventsCounted != 0 || s.LinesSkipped != 0 {
+		t.Fatalf("expected all-zero counts for empty input, got %+v", s)
+	}
+	out := render(s)
+	if !strings.Contains(out, "=== Per-node_id ===") || !strings.Contains(out, "=== Accounting ===") {
+		t.Fatalf("expected full block structure even for empty input, got:\n%s", out)
+	}
+}
+
+func TestSummarize_LineLongerThanDefaultScannerLimit(t *testing.T) {
+	// bufio.Scanner's default token limit is 64KiB (bufio.MaxScanTokenSize).
+	// Build a line comfortably over that, inside an ignored field, to prove
+	// the raised buffer (design risk 4) prevents a spurious skip.
+	padding := strings.Repeat("x", 70*1024)
+	line := `{"node_id":"n1","event":"dispatched","role":"r1","detail":"` + padding + `"}`
+	if len(line) <= 64*1024 {
+		t.Fatalf("test line is not actually longer than 64KiB: %d bytes", len(line))
+	}
+
+	s := summarizeString(t, line+"\n")
+	if s.LinesSkipped != 0 {
+		t.Fatalf("LinesSkipped=%d, want 0 (long line must not be skipped)", s.LinesSkipped)
+	}
+	if s.EventsCounted != 1 {
+		t.Fatalf("EventsCounted=%d, want 1", s.EventsCounted)
+	}
+}
+
+func TestFixture_CostAndUnpricedCounts(t *testing.T) {
+	data, err := os.ReadFile("../../testdata/fixture.jsonl")
+	if err != nil {
+		t.Fatalf("reading fixture: %v", err)
+	}
+	s := summarizeString(t, string(data))
+
+	if s.LinesRead != 9 {
+		t.Fatalf("LinesRead=%d, want 9", s.LinesRead)
+	}
+	if s.EventsCounted != 7 {
+		t.Fatalf("EventsCounted=%d, want 7", s.EventsCounted)
+	}
+	if s.LinesSkipped != 2 {
+		t.Fatalf("LinesSkipped=%d, want 2", s.LinesSkipped)
+	}
+
+	out := render(s)
+	if !strings.Contains(out, "total_cost_usd: 0.4600") {
+		t.Fatalf("expected total_cost_usd: 0.4600 in output, got:\n%s", out)
+	}
+	if !strings.Contains(out, "unpriced_events: 5") {
+		t.Fatalf("expected unpriced_events: 5 in output, got:\n%s", out)
+	}
+
+	na := s.NodeCounts["node-a"]
+	if na == nil || na.Dispatched != 1 || na.Complete != 1 || na.Failed != 1 || na.Merged != 0 {
+		t.Fatalf("node-a counts = %+v, want 1/1/1/0", na)
+	}
+	nb := s.NodeCounts["node-b"]
+	if nb == nil || nb.Dispatched != 1 || nb.Complete != 1 || nb.Failed != 0 || nb.Merged != 1 {
+		t.Fatalf("node-b counts = %+v, want 1/1/0/1", nb)
+	}
+}
+
+func TestFixture_AddingUnpricedEventLeavesTotalByteIdentical(t *testing.T) {
+	base, err := os.ReadFile("../../testdata/fixture.jsonl")
+	if err != nil {
+		t.Fatalf("reading fixture: %v", err)
+	}
+
+	before := render(summarizeString(t, string(base)))
+	beforeTotal := extractLine(t, before, "total_cost_usd:")
+
+	withNoUsage := string(base) + `{"node_id":"node-c","event":"dispatched","usage":{"known":false}}` + "\n"
+	afterKnownFalse := render(summarizeString(t, withNoUsage))
+	afterKnownFalseTotal := extractLine(t, afterKnownFalse, "total_cost_usd:")
+
+	if beforeTotal != afterKnownFalseTotal {
+		t.Fatalf("total changed after adding usage.known==false event: %q -> %q", beforeTotal, afterKnownFalseTotal)
+	}
+
+	withoutUsage := string(base) + `{"node_id":"node-c","event":"dispatched"}` + "\n"
+	afterNoUsage := render(summarizeString(t, withoutUsage))
+	afterNoUsageTotal := extractLine(t, afterNoUsage, "total_cost_usd:")
+
+	if beforeTotal != afterNoUsageTotal {
+		t.Fatalf("total changed after adding event with no usage object: %q -> %q", beforeTotal, afterNoUsageTotal)
+	}
+}
+
+func extractLine(t *testing.T, block, prefix string) string {
+	t.Helper()
+	for _, line := range strings.Split(block, "\n") {
+		if strings.HasPrefix(line, prefix) {
+			return line
+		}
+	}
+	t.Fatalf("no line with prefix %q found in:\n%s", prefix, block)
+	return ""
+}
+
+func TestRender_DeterministicAcrossRuns(t *testing.T) {
+	data, err := os.ReadFile("../../testdata/fixture.jsonl")
+	if err != nil {
+		t.Fatalf("reading fixture: %v", err)
+	}
+
+	first := render(summarizeString(t, string(data)))
+	second := render(summarizeString(t, string(data)))
+
+	if first != second {
+		t.Fatalf("rendered output not byte-identical across runs:\nfirst:\n%s\nsecond:\n%s", first, second)
+	}
+}
+
+func TestRender_SortOrderAscendingByByteOrder(t *testing.T) {
+	input := `{"node_id":"z-node","event":"dispatched","role":"z-role"}
+{"node_id":"a-node","event":"dispatched","role":"a-role"}
+{"node_id":"m-node","event":"dispatched","role":"m-role"}
+`
+	out := render(summarizeString(t, input))
+
+	nodeSection := sectionBetween(t, out, "=== Per-node_id ===", "=== Per-role ===")
+	if got, want := indexOrder(nodeSection, []string{"a-node", "m-node", "z-node"}), true; got != want {
+		t.Fatalf("node_id rows not in ascending byte order:\n%s", nodeSection)
+	}
+
+	roleSection := sectionBetween(t, out, "=== Per-role ===", "=== Cost ===")
+	if got, want := indexOrder(roleSection, []string{"a-role", "m-role", "z-role"}), true; got != want {
+		t.Fatalf("role rows not in ascending byte order:\n%s", roleSection)
+	}
+}
+
+func sectionBetween(t *testing.T, block, start, end string) string {
+	t.Helper()
+	i := strings.Index(block, start)
+	if i < 0 {
+		t.Fatalf("section start %q not found", start)
+	}
+	j := strings.Index(block[i:], end)
+	if j < 0 {
+		t.Fatalf("section end %q not found", end)
+	}
+	return block[i : i+j]
+}
+
+func indexOrder(block string, wantAscending []string) bool {
+	last := -1
+	for _, want := range wantAscending {
+		idx := strings.Index(block, want)
+		if idx < 0 || idx < last {
+			return false
+		}
+		last = idx
+	}
+	return true
+}

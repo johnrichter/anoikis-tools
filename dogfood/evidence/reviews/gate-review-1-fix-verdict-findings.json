@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0.0",
+  "gate": "cli-and-docs",
+  "verdict": "fix",
+  "reviewed_nodes": ["cli-core", "usage-docs"],
+  "base_ref": "635221cc60b76319c78138d282313760910a07c0",
+  "branch": "build",
+  "blocking_threshold": 15,
+  "findings": [
+    {
+      "id": "usage-docs-command-does-not-resolve",
+      "node_id": "usage-docs",
+      "criterion": "Every command and path the doc references actually resolves; the example's output matches a real run of the built binary byte-for-byte.",
+      "locus": "docs/usage.md:44",
+      "statement": "The worked example is introduced as \"Running the built binary against it:\" and invokes `$ runlog-stats testdata/fixture.jsonl`, but neither docs/usage.md nor README.md states how to produce a `runlog-stats` binary - there is no `go build`, `go install`, `go run`, or make instruction anywhere in the diff's documentation surface. On a clean checkout `runlog-stats` does not resolve as a command, so the doc's single worked example cannot be reproduced from what the docs provide. Confirmed during review: `command -v runlog-stats` finds nothing, and `grep -niE \"go build|go install|go run|make \" README.md docs/` returns no match. Note also that the naive `go build -o <name> ./...` fails on this two-package module with \"cannot write multiple packages to non-directory\", so the build step is not self-evident to a reader who tries to infer it. The paths the doc references (testdata/fixture.jsonl, docs/usage.md) do resolve; the command does not.",
+      "impact": 4,
+      "urgency": 4,
+      "score": 16
+    },
+    {
+      "id": "usage-docs-lines-read-non-blank-claim-false",
+      "node_id": "usage-docs",
+      "criterion": "A usage doc (docs/usage.md) with a synopsis, one worked example with real output from the built binary, and the unpriced-vs-total rule stated. / README.md's wording aligned with what the tool actually prints.",
+      "locus": "docs/usage.md:92",
+      "statement": "The \"Reading the accounting line\" section states \"`lines_read` is every non-blank line the scanner saw.\" This contradicts the binary's actual behaviour: bufio.Scanner yields blank lines as empty tokens, internal/runlogstats/runlogstats.go:110 increments LinesRead for each, and the subsequent json.Unmarshal failure tallies each blank line into LinesSkipped. Verified during review on a 4-line input whose 2nd and 3rd lines are blank: the tool prints lines_read: 4, events_counted: 2, lines_skipped: 2, and emits \"runlog-stats: skipped 2 unparsable line(s)\" on stderr. A reader following the doc's stated model would expect lines_read: 2 and would be unable to account for the two skipped lines or the stderr warning. The defect is in the one section the doc devotes to explaining the reconciliation that cli-core's own acceptance criteria require be reconcilable, and it is the class of doc-versus-binary divergence this gate reviews the two nodes together to catch.",
+      "impact": 3,
+      "urgency": 3,
+      "score": 9
+    }
+  ],
+  "criteria_verified_pass": {
+    "cli-core": [
+      "go build ./... and go vet ./... succeed offline (GOPROXY=off, rc=0 both); go.mod has no require block, language level go 1.23, no vendor directory; imports are stdlib only (bufio, encoding/json, fmt, io, sort, bytes, os, path/filepath, strings, testing) with no feature newer than 1.23.",
+      "go test ./... passes offline; all ten required cases present - five event values including grafted (TestSummarize_AllFiveEventValues), no role (TestSummarize_EventWithNoRole), no usage object (TestSummarize_NoUsageObject), known==false (TestSummarize_UsageKnownFalse), known==true with cost_usd (TestSummarize_UsageKnownTrueWithCost), known==true without cost_usd (TestSummarize_UsageKnownTrueNoCost), malformed non-JSON (TestSummarize_MalformedLine), missing required field (TestSummarize_MissingRequiredField, both node_id and event), empty input (TestSummarize_EmptyInput), line over 64KiB (TestSummarize_LineLongerThanDefaultScannerLimit, 70KiB against a raised 10MiB buffer).",
+      "Per-node_id and per-role sections each print dispatched/complete/failed/merged counts.",
+      "Fixture total is 0.4600 with unpriced_events: 5, matching exactly the five not-known-and-priced events (2 priced + 5 unpriced = 7 events counted); unpriced events never contribute to the total, asserted directly by TestFixture_AddingUnpricedEventLeavesTotalByteIdentical.",
+      "Deterministic byte-identical stdout: three consecutive runs and the stdin path all hash to aa9e2e2c362ae162cde18180ad4f6d17148f0aef6e552643cb54a1b7f0d0f644; rows sorted node_id/role ascending by byte order via sortedKeys/sort.Strings.",
+      "Counts reconcile: lines_read 9 = events_counted 7 + lines_skipped 2, with events_counted_by_kind summing to 7.",
+      "Exit 0 whenever a summary printed (including when lines were skipped); non-zero with a stderr message when the input could not be read - both the os.Open failure (TestRun_UnreadablePathIsFatal) and the post-open read failure (TestRun_PostOpenReadFailureIsFatal, a directory returning EISDIR on Read) are covered, and Render is not reached in the error path.",
+      "Reads one input only (positional path or stdin), offline, no mutation; commit 55532c1 stays inside *.go, internal/, and testdata/."
+    ],
+    "usage-docs": [
+      "docs/usage.md has a synopsis and states the unpriced-vs-total rule, enumerating all three unpriced shapes and naming the two priced fixture events that sum to 0.4600.",
+      "The worked example's quoted output matches a real run byte-for-byte: sed -n '45,67p' docs/usage.md diffs clean against the built binary's stdout, and the quoted stderr line matches exactly. The quoted fixture block also diffs clean against testdata/fixture.jsonl.",
+      "README.md wording aligned with what the tool prints: per-stage replaced by per-node_id/per-role; no stale per-stage wording remains anywhere in README.md or docs/.",
+      "Stays inside README.md and docs/; commit 9e03569 touched only those two paths."
+    ]
+  }
+}

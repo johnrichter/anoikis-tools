@@ -256,3 +256,11 @@ tmp/
 # own git worktree (recreated from its base commit on demand).
 .anoikis/*/logs/
 .anoikis/*/worktrees/
+
+###############################################################################
+# Release build output (SC-DISTRIBUTION: never committed)
+###############################################################################
+
+/dist/
+/anoikis
+!release/bootstrap/*.log

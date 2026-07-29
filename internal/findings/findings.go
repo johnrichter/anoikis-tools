@@ -10,7 +10,10 @@
 package findings
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
 
 	"github.com/johnrichter/anoikis-tools/internal/dag"
 	"github.com/johnrichter/anoikis-tools/internal/effort"
@@ -23,10 +26,29 @@ type Register struct {
 	threshold int
 }
 
+// WrongArtifactError reports that the bytes at the register's path are a
+// review-verdict findings artifact, not the register — the shape a reviewer
+// with no schema to consult once wrote straight over the effort's own
+// register, destroying it and breaking every later step until it was
+// manually repaired.
+type WrongArtifactError struct {
+	Path string
+}
+
+func (e *WrongArtifactError) Error() string {
+	return fmt.Sprintf(
+		"findings: %s carries the review-verdict shape (schemas/anoikis/review-findings.schema.json), not the findings-register shape (schemas/anoikis/findings-register.schema.json) this path holds; a review's findings belong at Layout.ReviewFindings, never at Layout.Findings",
+		e.Path,
+	)
+}
+
 // Open loads the register for an effort. threshold is the criticality at or
 // above which a finding blocks the build; it is a policy input, never a
 // constant here.
 func Open(l effort.Layout, threshold int) (*Register, error) {
+	if err := refuseReviewVerdictShape(l.Findings()); err != nil {
+		return nil, err
+	}
 	lg, err := ledger.Open(l.Findings(), l.FindingsMirror(), effort.FilePerm)
 	if err != nil {
 		return nil, fmt.Errorf("findings: open register: %w", err)
@@ -35,6 +57,30 @@ func Open(l effort.Layout, threshold int) (*Register, error) {
 		return nil, fmt.Errorf("findings: blocking threshold must be at least 1, got %d", threshold)
 	}
 	return &Register{l: lg, threshold: threshold}, nil
+}
+
+// refuseReviewVerdictShape reads path and refuses it when its top-level
+// shape is a review-verdict findings artifact rather than a register: the
+// register's document carries entries, never a findings array, so a
+// findings key at the top level unambiguously names the other contract.
+func refuseReviewVerdictShape(path string) error {
+	raw, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return nil // ledger.Open reports the real read failure
+	}
+	var probe struct {
+		Findings json.RawMessage `json:"findings"`
+	}
+	if err := json.Unmarshal(raw, &probe); err != nil {
+		return nil // not valid JSON at all; ledger.Open reports that
+	}
+	if probe.Findings != nil {
+		return &WrongArtifactError{Path: path}
+	}
+	return nil
 }
 
 // Add records a finding. Its id and criticality are derived by the register,

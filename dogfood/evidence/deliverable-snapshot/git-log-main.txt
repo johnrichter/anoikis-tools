@@ -1,0 +1,8 @@
+ff26a9decb75b202a12dfdf8ae992ac3a1c05556 2026-07-28 14:35:46 +0000 Operator confirms: anoikis dogfood effort runlog-stats, gate cli-and-docs (cli-core + usage-docs, both reviewed and passed) merges onto main.
+70feb9b8702e0ea034108af2ba90d71833aec63f 2026-07-28 14:29:51 +0000 Merge layer 3: 2 node(s)
+dc63c93500e3f046e2172840a918db270091210e 2026-07-28 14:25:58 +0000 Fix usage.md build instructions and lines_read accuracy
+6acb05ff6c01f9ba5875f6729a0c3bf663cbef40 2026-07-28 14:13:43 +0000 Merge layer 2: 1 node(s)
+9e03569244cae9e1dffc29a699b4d1a8afb5d475 2026-07-28 14:12:56 +0000 Add docs/usage.md quoting real binary output; reconcile README wording
+1b2620c7b65421b9d1cc1b1c8ad71f664d21ae06 2026-07-28 14:08:20 +0000 Merge layer 1: 1 node(s)
+55532c173819769cf9eb421f3156bba2f5d90cef 2026-07-28 14:04:00 +0000 Implement runlog-stats CLI: parse, count, cost, render, exit codes
+635221cc60b76319c78138d282313760910a07c0 2026-07-28 12:57:13 +0000 Initial scaffold: empty module, README

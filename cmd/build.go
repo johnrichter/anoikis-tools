@@ -270,6 +270,13 @@ func runRecord(cmd *cobra.Command, _ []string) error {
 		"spend":     rec.Spend,
 	}
 	if len(rec.Mergeable) == 0 {
+		// Nothing to merge, but the batch's shards and events are already
+		// saved above, so the log tail behind them is just as folded as the
+		// merge path leaves it — seal the cursor here too, or a later load
+		// re-folds this same tail and undoes the fold just written.
+		if err := s.advanceCursor(); err != nil {
+			return fail(cmd, "store", err)
+		}
 		result, err := clikit.NewSuccess(commandPath(cmd), data)
 		if err != nil {
 			return fail(cmd, "engine", err)

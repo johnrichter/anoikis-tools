@@ -62,13 +62,13 @@ const (
 	EventGrafted    Event = "grafted"
 )
 
-var knownEvents = map[Event]bool{
-	EventDispatched: true, EventComplete: true, EventFailed: true,
-	EventMerged: true, EventGrafted: true,
-}
+// AllEvents is the closed run-log event enumeration. FoldLog's fold is
+// checked exhaustive against it, so a member added here without a folding
+// decision fails that check rather than folding silently as a no-op.
+var AllEvents = []Event{EventDispatched, EventComplete, EventFailed, EventMerged, EventGrafted}
 
-// Known reports whether e is one of the five canonical events.
-func (e Event) Known() bool { return knownEvents[e] }
+// Known reports whether e is one of the canonical events.
+func (e Event) Known() bool { return slices.Contains(AllEvents, e) }
 
 // VerifyTier selects how a node is reviewed. It is the sole review selector —
 // review is never also a stage.
