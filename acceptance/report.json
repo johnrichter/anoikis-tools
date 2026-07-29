@@ -277,7 +277,7 @@
       "source": "prior-acceptance-spec",
       "bar": "build",
       "requires": "Reusable logic lives once, in the shared libraries, and is imported at a pinned version — never forked into this repository.",
-      "asserts": "At least one shared library is required; every shared-library requirement resolves to a sibling checkout outside this tree; the tree holds no vendored dependency directory, no second module, and no file declaring itself part of the shared namespace.",
+      "asserts": "At least one shared library is required; every shared-library requirement resolves either to a sibling checkout outside this tree or to a real, independently tagged version; the tree holds no vendored dependency directory, no second module, and no file declaring itself part of the shared namespace.",
       "met": true
     },
     {

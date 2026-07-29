@@ -101,7 +101,7 @@ func priorSpecClauses() []Clause {
 		Source:   SourcePriorSpec,
 		Bar:      BarBuild,
 		Requires: "Reusable logic lives once, in the shared libraries, and is imported at a pinned version — never forked into this repository.",
-		Asserts:  "At least one shared library is required; every shared-library requirement resolves to a sibling checkout outside this tree; the tree holds no vendored dependency directory, no second module, and no file declaring itself part of the shared namespace.",
+		Asserts:  "At least one shared library is required; every shared-library requirement resolves either to a sibling checkout outside this tree or to a real, independently tagged version; the tree holds no vendored dependency directory, no second module, and no file declaring itself part of the shared namespace.",
 		check:    sharedLibrariesImported,
 	}, {
 		ID:       "prior-spec/plugin-registers-additively",
@@ -592,15 +592,20 @@ func owesNothingToPriorHarness(t *Tree) []string {
 // sharedLibrariesImported checks reusable logic is imported, never forked.
 func sharedLibrariesImported(t *Tree) []string {
 	var out []string
-	require, _ := requirements(t)
+	require, replace := requirements(t)
 	shared := 0
-	for module := range require {
+	for module, version := range require {
 		if !strings.HasPrefix(module, sharedNamespace) {
 			continue
 		}
 		shared++
-		if !replacedOutsideTree(t, module) {
-			out = append(out, note("go.mod: %s is not resolved to a checkout outside this tree", module))
+		switch {
+		case replacedOutsideTree(t, module):
+			// A monorepo-development stand-in: pinned to a sibling checkout.
+		case !replace[module] && version != "v0.0.0":
+			// A real, independently tagged release: pinned by version + go.sum.
+		default:
+			out = append(out, note("go.mod: %s is not resolved to a checkout outside this tree or a tagged version", module))
 		}
 	}
 	if shared == 0 {
