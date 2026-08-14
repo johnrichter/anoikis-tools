@@ -30,7 +30,7 @@ jobs:
     name: guardrail
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: No committed binaries (SC-DISTRIBUTION)
         run: bash release/guard/no-committed-binaries.sh .
@@ -47,18 +47,18 @@ jobs:
       run:
         working-directory: anoikis-tools
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           path: anoikis-tools
 
       - name: Checkout ai-shared-lib sibling (go.mod replace target)
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           repository: johnrichter/claude-shared-tooling
           token: ${{ secrets.SIBLING_REPO_TOKEN }}
           path: ai-shared-lib
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version-file: anoikis-tools/go.mod
 
@@ -84,22 +84,22 @@ jobs:
     runs-on: ubuntu-latest
     needs: guardrail
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           path: anoikis-tools
 
       - name: Checkout ai-shared-lib sibling (go.mod replace target)
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           repository: johnrichter/claude-shared-tooling
           token: ${{ secrets.SIBLING_REPO_TOKEN }}
           path: ai-shared-lib
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version-file: anoikis-tools/go.mod
 
-      - uses: golangci/golangci-lint-action@v8.0.0
+      - uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v8.0.0
         with:
           version: v2.12.2
           working-directory: anoikis-tools
