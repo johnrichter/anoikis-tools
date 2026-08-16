@@ -6,9 +6,9 @@ The three specifications it covers:
 
 | Source | Clause prefix | What it holds the engine to |
 |---|---|---|
-| The acceptance specification of the plan this engine was rebuilt from | `prior-spec/` | The production, documentation, toolchain, contract, command, dependency, determinism, resume, decoupling, shared-library and plugin bars. |
+| The acceptance specification of the plan this engine was rebuilt from | `prior-spec/` | The production, documentation, toolchain, contract, command, dependency, determinism, resume, decoupling and shared-library bars. |
 | The core model of the work graph | `core-model/` | The execution loop, admission, the two merges, the artifact contracts, durability and the one-home-per-fact rules. |
-| The first version's cost and context gates | `v1/` | Context held flat, returns bounded, the default context window, attribution, routing and deterministic dispatch. |
+| The first version's cost and context gates | `v1/` | Context held flat, returns bounded, the default context window, attribution and deterministic dispatch. |
 
 ## Running it
 

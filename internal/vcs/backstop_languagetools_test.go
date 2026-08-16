@@ -17,8 +17,8 @@ import (
 // command names a language-tools CLI invocation (see
 // examples/harness-policy.json's "backstop" field), and this exercises that
 // edge against the actual released artifact rather than a source build --
-// the same per-OS/arch archive plugin/hooks/download-script.sh would fetch
-// and verify at runtime.
+// the same per-OS/arch archive the fleet's shared provisioner convention
+// (PIN-CONTRACT) would fetch and verify at runtime.
 //
 // It skips (never fails) when no released language-tools archive is found
 // beside this checkout: the artifact is a build output of a sibling repo's

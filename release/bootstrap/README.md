@@ -1,7 +1,7 @@
 # Bootstrap release procedure
 
 This directory documents the manual first materialization of an anoikis-tools release,
-performed locally (no push, no publish) so the plugin's download-script and the runtime
+performed locally (no push, no publish) so a plugin-foundation download-script and the runtime
 post-merge-compile edge can be exercised against real per-OS/arch archives before this
 task's own work lands and `release.yml` starts cutting releases from a real tag push.
 
@@ -47,15 +47,16 @@ commit exists yet for a release tag to name.
    tar -xzf dist/anoikis_0.1.0_linux_amd64.tar.gz -O anoikis > /dev/null  # sanity: extracts cleanly
    ```
 
-5. **Exercise the plugin's provisioner against the local archives** (`file://`, no network).
-   `download-script.sh` resolves `PF_RELEASE_BASE_URL/v<version>/<archive>`, so stage the
-   `dist/` output under a `v<version>/` subdir of a scratch mirror first:
+5. **Exercise a plugin-foundation provisioner against the local archives** (`file://`, no
+   network). anoikis-tools carries no plugin of its own, so this borrows ai-shared-lib's
+   shared `download-script.sh`, which resolves `PF_RELEASE_BASE_URL/v<version>/<archive>`;
+   stage the `dist/` output under a `v<version>/` subdir of a scratch mirror first:
    ```sh
    mirror="$(mktemp -d)/mirror"; mkdir -p "$mirror/v0.1.0"
    cp dist/*.tar.gz dist/checksums.txt "$mirror/v0.1.0/"
    PF_CLI_NAME=anoikis PF_PLUGIN_DATA="$(mktemp -d)" PF_VERSION=0.1.0 \
    PF_ARCH_OVERRIDE=linux/amd64 PF_RELEASE_BASE_URL="file://$mirror" \
-     sh plugin/hooks/download-script.sh
+     sh ../ai-shared-lib/plugin-foundation/download-script.sh
    ```
 
 ## What this bootstrap does not do
@@ -71,7 +72,7 @@ commit exists yet for a release tag to name.
 
 - `dist/anoikis_0.1.0_<os>_<arch>.tar.gz` — one archive per target, single executable
   named `anoikis` inside, matching `release.yml`'s own build step and the filename shape
-  `plugin/hooks/download-script.sh` parses.
+  ai-shared-lib's `plugin-foundation/download-script.sh` parses.
 - `dist/checksums.txt` — `sha256sum`-style manifest, one line per archive.
 
 Both are git-ignored build output (SC-DISTRIBUTION: no built binary is ever committed);

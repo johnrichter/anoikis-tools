@@ -3,7 +3,6 @@ package acceptance
 import (
 	"errors"
 	"fmt"
-	"path"
 	"slices"
 	"strings"
 
@@ -70,14 +69,6 @@ func v1GateClauses() []Clause {
 		Asserts:  "Every transition the engine journals carries the node, model, context window, effort and layer a compaction would be attributed by, and spend is priced out of process from the session's own transcript rather than by reading it into the driving session.",
 		Measured: "the compaction record itself — including the tokens held at the moment of compaction — which the driving harness captures with its own compaction hook. That hook is harness surface, not engine surface, and this engine ships none.",
 		check:    compactionCanBeAttributed,
-	}, {
-		ID:       "v1/governed-operations-route-through-the-engine",
-		Source:   SourceV1Gates,
-		Bar:      BarMechanism,
-		Requires: "The share of tool calls spent on raw shell drops materially, because the operations the engine supersedes are routed to it.",
-		Asserts:  "The plugin declares a routing rule for every operation the engine supersedes, each naming the invocation that replaces the raw command; the adoption gate over the frozen fixtures is part of the test suite; the routing hook fails open when the engine is unavailable.",
-		Measured: "the live share of tool calls that go through the engine rather than raw shell, over a real driven build.",
-		check:    governedOperationsRouted,
 	}, {
 		ID:       "v1/dispatch-is-deterministic",
 		Source:   SourceV1Gates,
@@ -250,88 +241,6 @@ func compactionCanBeAttributed(t *Tree) []string {
 	}
 	if !strings.Contains(source, "type Unavailable struct") {
 		out = append(out, note("internal/usage/usage.go: there is no provider for a harness that wires no spend source, so unmeasured spend has nowhere honest to go"))
-	}
-	slices.Sort(out)
-	return out
-}
-
-// routingRules is the plugin's declaration of which operations route to the
-// engine.
-const routingRules = "plugin/routing-rules.json"
-
-// adoptionGate is the test that scores those rules against frozen fixtures.
-const adoptionGate = "internal/plugincheck/adoption_test.go"
-
-// routingHook is the plugin's own hook; sharedRoutingHook is the shared
-// implementation it hands over to, which owns the deny-or-allow decision.
-const (
-	routingHook       = "plugin/hooks/pretooluse-forced-use.sh"
-	sharedRoutingHook = "plugin/hooks/forced-use-hook.sh"
-)
-
-// shellTool is the tool a raw command is run through, and the only kind of
-// operation a command prefix can recognise.
-const shellTool = "Bash"
-
-// governedOperationsRouted checks the raw commands the engine supersedes are
-// routed to it.
-func governedOperationsRouted(t *Tree) []string {
-	var out []string
-	var rules struct {
-		Operations []struct {
-			Name string `json:"name"`
-			CLI  struct {
-				InvocationPrefix string `json:"invocation_prefix"`
-				UsageHint        string `json:"usage_hint"`
-			} `json:"cli"`
-			Raw struct {
-				ToolName        string   `json:"tool_name"`
-				CommandPrefixes []string `json:"command_prefixes"`
-			} `json:"raw"`
-		} `json:"operations"`
-	}
-	if err := t.JSON(routingRules, &rules); err != nil {
-		return []string{note("%v", err)}
-	}
-	if len(rules.Operations) == 0 {
-		return []string{note("%s: declares no governed operation", routingRules)}
-	}
-	for _, op := range rules.Operations {
-		switch {
-		case op.Name == "":
-			out = append(out, note("%s: an operation has no name", routingRules))
-		case op.CLI.InvocationPrefix == "":
-			out = append(out, note("%s: operation %q names no invocation to route to", routingRules, op.Name))
-		case op.CLI.UsageHint == "":
-			out = append(out, note("%s: operation %q offers no usage hint, so a redirect cannot say what to run", routingRules, op.Name))
-		case op.Raw.ToolName == "":
-			out = append(out, note("%s: operation %q names no raw tool it supersedes", routingRules, op.Name))
-		case op.Raw.ToolName == shellTool && len(op.Raw.CommandPrefixes) == 0:
-			// Only a shell operation is recognised by its command; a tool that
-			// takes no command is superseded whole.
-			out = append(out, note("%s: shell operation %q names no command it supersedes", routingRules, op.Name))
-		}
-	}
-	if !t.Has(adoptionGate) {
-		out = append(out, note("%s: the adoption gate over the frozen fixtures is missing", adoptionGate))
-	}
-	// The plugin's own hook only supplies paths and hands over to the shared
-	// implementation, which is where failing open is decided, so both are
-	// checked: the wrapper delegates, and what it delegates to lets the tool
-	// through rather than denying it.
-	wrapper := t.Text(routingHook)
-	switch {
-	case wrapper == "":
-		out = append(out, note("%s: the routing hook is missing", routingHook))
-	case !strings.Contains(wrapper, path.Base(sharedRoutingHook)):
-		out = append(out, note("%s: does not hand over to the shared routing hook, so failing open is unowned", routingHook))
-	}
-	shared := t.Text(sharedRoutingHook)
-	switch {
-	case shared == "":
-		out = append(out, note("%s: the shared routing hook is missing", sharedRoutingHook))
-	case !strings.Contains(shared, "exit 0"):
-		out = append(out, note("%s: has no path that lets the tool through, so it cannot fail open", sharedRoutingHook))
 	}
 	slices.Sort(out)
 	return out

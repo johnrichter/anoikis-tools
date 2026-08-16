@@ -7,7 +7,7 @@
 # in ci.yml on the same push). A manual workflow_dispatch run defaults to dry_run: true, so a
 # change to this file can be exercised without cutting a tag or touching GitHub Releases.
 #
-# go.mod `replace`s onto ../ai-shared-lib/go/* and ../ai-shared-lib/plugin-foundation.
+# go.mod `replace`s onto ../ai-shared-lib/go/*.
 # actions/checkout refuses any path outside $GITHUB_WORKSPACE, so both repos check out as
 # workspace siblings (anoikis-tools, ai-shared-lib) and every later step runs with
 # working-directory: anoikis-tools, which resolves the replace target the same way a local
@@ -19,8 +19,9 @@
 # create` here undisturbed.
 #
 # The archive layout (v<version>/<name>_<version>_<os>_<arch>.tar.gz + one shared
-# checksums.txt per tag) is exactly what plugin/hooks/download-script.sh expects --
-# see that script's own header for the consumer side of this contract.
+# checksums.txt per tag) matches the fleet's shared provisioner convention (PIN-CONTRACT):
+# this repo has no plugin of its own consuming it today, but any future consumer must
+# resolve archives under that same layout.
 
 name: SC-DISTRIBUTION release
 

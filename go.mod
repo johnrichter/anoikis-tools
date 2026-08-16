@@ -4,7 +4,6 @@ go 1.26
 
 require (
 	github.com/bmatcuk/doublestar/v4 v4.10.0
-	github.com/johnrichter/claude-shared-tooling/go/adoption v0.1.0
 	github.com/johnrichter/claude-shared-tooling/go/bandcheck v0.1.0
 	github.com/johnrichter/claude-shared-tooling/go/clikit v0.1.0
 	github.com/johnrichter/claude-shared-tooling/go/cost v0.1.0
@@ -21,7 +20,6 @@ require (
 	github.com/johnrichter/claude-shared-tooling/go/state v0.1.0
 	github.com/johnrichter/claude-shared-tooling/go/sysops v0.1.0
 	github.com/johnrichter/claude-shared-tooling/go/transcript v0.1.0
-	github.com/johnrichter/claude-shared-tooling/plugin-foundation v0.1.0
 	github.com/knadh/koanf/parsers/yaml v1.1.0
 	github.com/knadh/koanf/providers/confmap v1.0.0
 	github.com/knadh/koanf/providers/env v1.1.0

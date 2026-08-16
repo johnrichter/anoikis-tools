@@ -69,13 +69,6 @@ func TestPlantedViolationsFailTheGate(t *testing.T) {
 					guard[:start]+"var foreignNames = []string{}\n"+guard[start+end+2:])
 			},
 		},
-		"a plugin hook reaching outside the plugin root": {
-			clause: "prior-spec/plugin-registers-additively",
-			plant: func(t *testing.T, root string) {
-				write(t, root, "plugin/hooks/hooks.json",
-					`{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"${CLAUDE_PLUGIN_ROOT}/../../elsewhere.sh"}]}]}}`)
-			},
-		},
 		"a gate policy that keeps its own member list": {
 			clause: "core-model/one-home-per-fact",
 			plant: func(t *testing.T, root string) {
@@ -100,12 +93,6 @@ func TestPlantedViolationsFailTheGate(t *testing.T) {
 					stages := doc["workflow"].(map[string]any)["stages"].([]any)
 					stages[0].(map[string]any)["context_window"] = "1m"
 				})
-			},
-		},
-		"a plugin that routes nothing to the engine": {
-			clause: "v1/governed-operations-route-through-the-engine",
-			plant: func(t *testing.T, root string) {
-				write(t, root, "plugin/routing-rules.json", `{"operations":[]}`)
 			},
 		},
 	}

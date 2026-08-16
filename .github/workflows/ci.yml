@@ -1,7 +1,7 @@
 # CI for anoikis-tools: the harness-agnostic work-graph engine binary.
 #
-# go.mod `replace`s onto ../ai-shared-lib/go/* and ../ai-shared-lib/plugin-foundation (see
-# release.yml's header). actions/checkout refuses any path outside $GITHUB_WORKSPACE, so
+# go.mod `replace`s onto ../ai-shared-lib/go/* (see release.yml's header).
+# actions/checkout refuses any path outside $GITHUB_WORKSPACE, so
 # every job that runs `go build`/`go vet`/`go test` checks out both repos as workspace
 # siblings (anoikis-tools, ai-shared-lib) and runs with working-directory: anoikis-tools,
 # which resolves the replace target at ../ai-shared-lib exactly as a local dev checkout

@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"go/ast"
 	"go/format"
-	"os"
 	"path"
-	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -103,13 +101,6 @@ func priorSpecClauses() []Clause {
 		Requires: "Reusable logic lives once, in the shared libraries, and is imported at a pinned version — never forked into this repository.",
 		Asserts:  "At least one shared library is required; every shared-library requirement resolves either to a sibling checkout outside this tree or to a real, independently tagged version; the tree holds no vendored dependency directory, no second module, and no file declaring itself part of the shared namespace.",
 		check:    sharedLibrariesImported,
-	}, {
-		ID:       "prior-spec/plugin-registers-additively",
-		Source:   SourcePriorSpec,
-		Bar:      BarBuild,
-		Requires: "This engine's plugin is additive: it is well-formed, self-contained, and changes nothing that already exists.",
-		Asserts:  "The plugin manifest parses and declares a name, a description and a semantic version; every hook command resolves inside the plugin root to a file that exists in the tree; no hook path escapes the plugin root.",
-		check:    pluginRegistersAdditively,
 	}}
 }
 
@@ -643,82 +634,4 @@ func replacedOutsideTree(t *Tree, module string) bool {
 		return strings.HasPrefix(strings.TrimSpace(target), "../")
 	}
 	return false
-}
-
-// pluginManifest is the plugin's own declaration.
-const pluginManifest = "plugin/.claude-plugin/plugin.json"
-
-// pluginHooks is where the plugin's hooks are registered.
-const pluginHooks = "plugin/hooks/hooks.json"
-
-// pluginRoot is the variable a hook command resolves its own directory from.
-const pluginRoot = "${CLAUDE_PLUGIN_ROOT}"
-
-// semver matches a semantic version.
-var semver = regexp.MustCompile(`^\d+\.\d+\.\d+`)
-
-// pluginRegistersAdditively checks the plugin is well-formed and
-// self-contained.
-func pluginRegistersAdditively(t *Tree) []string {
-	var out []string
-	var manifest struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		Version     string `json:"version"`
-	}
-	if err := t.JSON(pluginManifest, &manifest); err != nil {
-		return []string{note("%v", err)}
-	}
-	if manifest.Name == "" {
-		out = append(out, note("%s: declares no name", pluginManifest))
-	}
-	if manifest.Description == "" {
-		out = append(out, note("%s: declares no description", pluginManifest))
-	}
-	if !semver.MatchString(manifest.Version) {
-		out = append(out, note("%s: version %q is not a semantic version", pluginManifest, manifest.Version))
-	}
-
-	var hooks struct {
-		Hooks map[string][]struct {
-			Hooks []struct {
-				Command string `json:"command"`
-			} `json:"hooks"`
-		} `json:"hooks"`
-	}
-	if err := t.JSON(pluginHooks, &hooks); err != nil {
-		return append(out, note("%v", err))
-	}
-	if len(hooks.Hooks) == 0 {
-		out = append(out, note("%s: registers no hook", pluginHooks))
-	}
-	for event, matchers := range hooks.Hooks {
-		for _, matcher := range matchers {
-			for _, hook := range matcher.Hooks {
-				out = append(out, hookProblems(t, event, hook.Command)...)
-			}
-		}
-	}
-	slices.Sort(out)
-	return out
-}
-
-// hookProblems checks one hook command resolves inside the plugin root.
-func hookProblems(t *Tree, event, command string) []string {
-	trimmed := strings.Trim(strings.TrimSpace(command), `"`)
-	if !strings.HasPrefix(trimmed, pluginRoot) {
-		return []string{note("%s: the %s hook command %q does not resolve from the plugin root", pluginHooks, event, command)}
-	}
-	rel := path.Join("plugin", strings.TrimPrefix(strings.TrimPrefix(trimmed, pluginRoot), "/"))
-	if strings.Contains(rel, "..") {
-		return []string{note("%s: the %s hook command %q escapes the plugin root", pluginHooks, event, command)}
-	}
-	if !t.Has(rel) {
-		return []string{note("%s: the %s hook runs %s, which is not in the tree", pluginHooks, event, rel)}
-	}
-	info, err := os.Stat(filepath.Join(t.Root(), filepath.FromSlash(rel)))
-	if err != nil || info.Mode()&0o111 == 0 {
-		return []string{note("%s: the %s hook runs %s, which is not executable", pluginHooks, event, rel)}
-	}
-	return nil
 }

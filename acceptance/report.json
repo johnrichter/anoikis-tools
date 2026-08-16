@@ -4,8 +4,8 @@
   "forces_pause": false,
   "action": "none: every clause holds at its bar, so the acceptance condition of the switchover is satisfied and the open conditions below pass to the driven build that follows it",
   "counts": {
-    "clauses": 37,
-    "met": 37,
+    "clauses": 35,
+    "met": 35,
     "unmet": 0
   },
   "by_source": {
@@ -15,13 +15,13 @@
       "unmet": 0
     },
     "prior-acceptance-spec": {
-      "clauses": 11,
-      "met": 11,
+      "clauses": 10,
+      "met": 10,
       "unmet": 0
     },
     "v1-cost-context-gates": {
-      "clauses": 7,
-      "met": 7,
+      "clauses": 6,
+      "met": 6,
       "unmet": 0
     }
   },
@@ -33,10 +33,6 @@
     {
       "clause": "v1/directive-size-is-flat-in-completed-work",
       "measurement": "the per-turn cache-write trend against completed-node count over a real driven build."
-    },
-    {
-      "clause": "v1/governed-operations-route-through-the-engine",
-      "measurement": "the live share of tool calls that go through the engine rather than raw shell, over a real driven build."
     },
     {
       "clause": "v1/orchestrator-holds-pointers-only",
@@ -257,14 +253,6 @@
       "met": true
     },
     {
-      "id": "prior-spec/plugin-registers-additively",
-      "source": "prior-acceptance-spec",
-      "bar": "build",
-      "requires": "This engine's plugin is additive: it is well-formed, self-contained, and changes nothing that already exists.",
-      "asserts": "The plugin manifest parses and declares a name, a description and a semantic version; every hook command resolves inside the plugin root to a file that exists in the tree; no hook path escapes the plugin root.",
-      "met": true
-    },
-    {
       "id": "prior-spec/production-bar",
       "source": "prior-acceptance-spec",
       "bar": "build",
@@ -320,15 +308,6 @@
       "bar": "build",
       "requires": "Every node in this version runs at the default context window; no node is pinned to the wide one, which is the single largest spend lever and is taken on evidence only.",
       "asserts": "Every stage declared in the shipped harness policy runs at the default window; no declaration anywhere in the tree pins the wide window.",
-      "met": true
-    },
-    {
-      "id": "v1/governed-operations-route-through-the-engine",
-      "source": "v1-cost-context-gates",
-      "bar": "mechanism",
-      "requires": "The share of tool calls spent on raw shell drops materially, because the operations the engine supersedes are routed to it.",
-      "asserts": "The plugin declares a routing rule for every operation the engine supersedes, each naming the invocation that replaces the raw command; the adoption gate over the frozen fixtures is part of the test suite; the routing hook fails open when the engine is unavailable.",
-      "measured": "the live share of tool calls that go through the engine rather than raw shell, over a real driven build.",
       "met": true
     },
     {
